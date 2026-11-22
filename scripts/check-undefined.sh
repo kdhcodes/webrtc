@@ -8,19 +8,28 @@ set -euo pipefail
 addon="${1:-build/Release/wrtc.node}"
 node_syms='^_?(napi_|node_|uv_)'
 
+# A failed nm must fail the check, not read as "nothing missing".
+fail() {
+  echo "check-undefined: nm couldn't read $addon" >&2
+  exit 1
+}
+# The symbols that aren't Node's (grep -v exits 1 when there are none).
+not_node() { grep -vE "$node_syms" || true; }
+
 case "$(uname)" in
   Darwin)
     # Lines look like "(undefined) [weak] external SYMBOL (dynamically looked up)".
-    missing=$(nm -m "$addon" | grep 'dynamically looked up' \
-      | awk '{for (i = 1; i <= NF; i++) if ($i == "(dynamically") print $(i - 1)}' \
-      | grep -vE "$node_syms" || true)
+    symbols=$(nm -m "$addon") || fail
+    missing=$(awk '/dynamically looked up/ {
+        for (i = 1; i <= NF; i++) if ($i == "(dynamically") print $(i - 1)
+      }' <<<"$symbols" | not_node)
     ;;
   Linux)
     # Versioned symbols (sym@GLIBC_2.17) come from system libraries the addon
     # links against, which the loader checks; weak undefined symbols (w/v)
     # are allowed to stay null by design.
-    missing=$(nm -D --undefined-only "$addon" | awk '$1 == "U" {print $2}' \
-      | grep -v '@' | grep -vE "$node_syms" || true)
+    symbols=$(nm -D --undefined-only "$addon") || fail
+    missing=$(awk '$1 == "U" && $2 !~ /@/ {print $2}' <<<"$symbols" | not_node)
     ;;
   *) exit 0 ;;
 esac
