@@ -10,12 +10,6 @@ WebRTC for Node.js. It's a native addon over Google's libwebrtc (M150, built fro
 npm install @kdh.codes/webrtc
 ```
 
-Or swap it in for wrtc without touching any code:
-
-```json
-"@roamhq/wrtc": "npm:@kdh.codes/webrtc"
-```
-
 Prebuilt for macOS arm64 and Linux x64/arm64 (glibc 2.34+, so not Alpine). Needs Node 24+.
 
 ## Usage
@@ -37,7 +31,6 @@ Mostly it does what Chrome does where wrtc didn't:
 - No H264, just VP8, VP9 and AV1
 - Remote tracks start muted and unmute when media arrives, and they fire `ended` when their transceiver stops or the connection closes
 - Sinks stop when their track ends, so they don't keep your process alive
-- The error messages should actually tell you what went wrong
 
 ## License
 
