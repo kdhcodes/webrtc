@@ -8,8 +8,8 @@
 # - linux-x64, linux-arm64: docker/linux.Dockerfile, the image the local
 #   Linux runs use, so the addon links (and gets its glibc floor) the way the
 #   released binaries do; the tests run in it, and WPT too on linux-x64.
-# - wpt-badge: on pushes to main, the README's WPT badge (subtests passed)
-#   and the results page it links to (WPT.md), pushed to the `badges` branch.
+# The README's WPT badge and results page come from linux-x64's WPT results
+# artifact, after a successful run on main (wpt-badge.yml).
 # Not here: the Chrome interop tests (test/interop) and test/sfu.
 name: CI
 
@@ -111,6 +111,7 @@ jobs:
           cache-from: type=gha,scope=deps-${{ matrix.triple }}
           cache-to: type=gha,mode=max,scope=deps-${{ matrix.triple }}
       # The build stage: pnpm run build and typecheck, against libwebrtc.
+      # It reads the deps cache but writes none (that would export libwebrtc).
       - name: Build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -118,6 +119,7 @@ jobs:
           file: docker/linux.Dockerfile
           target: test
           build-contexts: libwebrtc=${{ steps.libwebrtc.outputs.dir }}
+          cache-from: type=gha,scope=deps-${{ matrix.triple }}
           load: true
           tags: wrtc-ci
       - name: pnpm test && pnpm run test:exit
@@ -127,7 +129,7 @@ jobs:
         run: |
           mkdir -p wpt-out
           docker run --rm -v "$PWD/wpt-out:/src/test/wpt/out" wrtc-ci pnpm run wpt
-      # The raw results: for digging into a failure, and for the badge.
+      # The raw results: for digging into a failure, and for wpt-badge.yml.
       - name: WPT results
         if: matrix.wpt && !cancelled()
         uses: actions/upload-artifact@v7
@@ -135,46 +137,3 @@ jobs:
           name: wpt-out-${{ matrix.triple }}
           path: wpt-out
           if-no-files-found: ignore
-
-  wpt-badge:
-    name: WPT badge
-    needs: linux
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write # pushes the badges branch
-    concurrency:
-      group: wpt-badge
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - uses: actions/download-artifact@v8
-        with:
-          name: wpt-out-linux-x64
-          path: wpt-out
-      - name: Write the badge and the results page
-        run: |
-          node scripts/wpt-report.mjs --out "$RUNNER_TEMP/badges" --results wpt-out/ours.json \
-            --commit "$GITHUB_SHA" --date "$(date -u +%F)" --platform linux-x64 \
-            --repo "$GITHUB_REPOSITORY"
-          cat "$RUNNER_TEMP/badges/wpt.json"
-      # One commit holding only wpt.json (the badge, a shields.io endpoint)
-      # and WPT.md (the page it links to), force-pushed, so the branch never
-      # grows. README.md's badge reads them from the branch.
-      - name: Push them to the badges branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cd "$RUNNER_TEMP/badges"
-          git init -q -b badges
-          git add wpt.json WPT.md
-          git -c user.name='github-actions[bot]' \
-            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -q -m "WPT results for $GITHUB_SHA"
-          git push -q --force "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" HEAD:badges
