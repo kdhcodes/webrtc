@@ -24,11 +24,11 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '24'
+  NODE_VERSION: "24"
   # What the devenv shell has; the Docker image installs the latest.
-  NODE_GYP_VERSION: '13.1.0'
+  NODE_GYP_VERSION: "13.1.0"
   # Must match the clang-format the code was formatted with (devenv's).
-  CLANG_FORMAT_VERSION: '21.1.8'
+  CLANG_FORMAT_VERSION: "21.1.8"
 
 jobs:
   lint:

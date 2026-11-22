@@ -16,7 +16,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 concurrency:
   group: release-${{ github.ref }}
@@ -26,8 +26,8 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '24'
-  NODE_GYP_VERSION: '13.1.0'
+  NODE_VERSION: "24"
+  NODE_GYP_VERSION: "13.1.0"
 
 jobs:
   version:
