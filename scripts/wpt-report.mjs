@@ -82,14 +82,14 @@ export function badge(results) {
 
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 /** Text for Markdown and the HTML GitHub allows in it; `|` too inside tables. */
-const escape = (text, { table = false } = {}) => {
+const escapeText = (text, { table = false } = {}) => {
   const html = String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return table ? html.replace(/\|/g, '\\|') : html;
 };
 /** A test or subtest name as code, whatever backticks it holds. */
 const code = (text, options) => {
   const fence = String(text).includes('`') ? '``' : '`';
-  return `${fence}${escape(text, options).replace(/^`|`$/g, ' $& ')}${fence}`;
+  return `${fence}${escapeText(text, options).replace(/^`|`$/g, ' $& ')}${fence}`;
 };
 
 /** The explicit reason for a test's or subtest's expectation, if any. */
@@ -174,7 +174,7 @@ export function page(results, expectations, { commit, date, platform, repo }) {
         const reason = reasonOf(expected);
         notes.push(
           `- ${code(file)}: ${isUnexpected(id, null) ? '**unexpected** ' : ''}` +
-            `test status ${result.status}${reason ? `: ${escape(reason)}` : ''}`,
+            `test status ${result.status}${reason ? `: ${escapeText(reason)}` : ''}`,
         );
       }
       for (const [subtest, sub] of subs) {
@@ -183,7 +183,7 @@ export function page(results, expectations, { commit, date, platform, repo }) {
         const reason = reasonOf(expected?.subtests?.[subtest]);
         notes.push(
           `- ${code(file)} ${code(subtest)}: ${surprise ? '**unexpected** ' : ''}${sub.status}` +
-            `${reason ? `: ${escape(reason)}` : ''}`,
+            `${reason ? `: ${escapeText(reason)}` : ''}`,
         );
       }
     }
