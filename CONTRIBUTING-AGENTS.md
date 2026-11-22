@@ -14,6 +14,9 @@ out about 20 GB into `~/src/webrtc-m150` and takes a while, later ones
 minutes), then `pnpm install`, then `pnpm run build`. The Linux builds come
 from an x64 Linux host (gpubox, below) and are copied here for Docker:
 `rsync -a gpubox:repos/personal/libwebrtc-rs-js-libwebrtc/$(python3 scripts/gyp-webrtc.py config-id)/linux-arm64-release third_party/libwebrtc-upstream/`.
+Once a configuration's builds are uploaded ("CI and releases"),
+`scripts/libwebrtc-assets.sh fetch all` gets all three instead of
+building (about 230 MB to download).
 
 In a git worktree: `scripts/setup-worktree.sh`. It links the main
 checkout's `third_party/libwebrtc-upstream` (about 1 GB per platform,
@@ -358,7 +361,9 @@ Whenever the libwebrtc build changes (the upstream pin, `third_party/args`,
    `package` step refuses a checkout whose applied patches aren't
    `patches/`.
 4. Rerun the third-party notices steps (Packaging), then
-   `scripts/prebuild.sh all`.
+   `scripts/prebuild.sh all`. Pack the builds and have the user upload
+   them (`scripts/libwebrtc-assets.sh pack`; "CI and releases"): CI can't
+   build or test the new configuration until they're up.
 5. Check `turns:` against a real server on each platform: `WRTC_TURNS_PROBE=1
    node --test test/integration/turns.test.ts` here, on gpubox (through
    `gpubox-test.sh`) and in the Linux arm64 image (`docker run --rm -e
@@ -398,6 +403,7 @@ Build all three binaries and package them, from an arm64 Mac, in this order:
 scripts/prebuild.sh darwin-arm64   # pnpm run build here, strip -x
 scripts/prebuild.sh linux-arm64    # Docker: docker/linux.Dockerfile --target addon
 scripts/prebuild.sh linux-x64      # gpubox, via gpubox-test.sh; cleans up after itself
+                                   # (on an x64 host, e.g. CI, Docker as for linux-arm64)
 scripts/package.sh                 # build:ts, then artifacts/*.tgz; lists missing platforms
 ```
 
@@ -481,7 +487,153 @@ which uses the system compiler on Linux and fails. Build explicitly with
 
 Before handing work back, all of these must pass on macOS: `build`,
 `typecheck`, `test`, `test:exit` and `lint`. Native changes must also pass the Docker
-run.
+run. CI (below) runs the same on every platform, but only once pushed: run
+them locally first.
+
+### CI and releases
+
+The repo is public at `github.com/kevindhanna/webrtc`, so GitHub Actions'
+runners are free. Two workflows, plus a local action:
+
+- `.github/workflows/ci.yml`, on pushes to `main` and on pull requests (a
+  newer push cancels the run it supersedes):
+  - `lint and typecheck` (ubuntu-24.04): `pnpm run lint` (with
+    clang-format pinned to devenv's version, from PyPI) and `typecheck`, once,
+    since neither is per platform.
+  - `darwin-arm64` (macos-15, arm64): `pnpm run build` on the runner with
+    Xcode's clang and node-gyp (pinned to devenv's), then `typecheck`,
+    `test` and `test:exit`. The local build uses devenv's clang and SDK
+    instead; both compile against the system libc++, which libwebrtc's mac
+    build uses.
+  - `linux-x64` (ubuntu-24.04) and `linux-arm64` (ubuntu-24.04-arm):
+    `docker/linux.Dockerfile`, exactly as locally, so the addon links (and
+    gets its glibc floor) as the released binaries do. The build stage builds
+    and typechecks; `docker run` runs `test` and `test:exit`; linux-x64 also
+    runs `pnpm run wpt` (about 4 minutes) and uploads `test/wpt/out` when it
+    fails. The image's layers are cached per platform in the Actions cache.
+  - Not in CI: the Chrome interop tests and `test/sfu` (a browser download
+    and timing-sensitive media on shared runners; run them locally).
+- `.github/workflows/release.yml`, on tags `v*`: below.
+- `.github/actions/libwebrtc`: fetches the libwebrtc build for the
+  checkout's config id with `scripts/libwebrtc-assets.sh fetch <triple>`,
+  caching the downloaded archive by config id and triple
+  (`WRTC_LIBWEBRTC_CACHE`).
+
+**libwebrtc for CI.** CI never builds libwebrtc. It downloads ours from the
+GitHub release tagged `libwebrtc-<config id>` (`python3
+scripts/gyp-webrtc.py config-id`; "Linux x64 on gpubox" says what it
+covers), whose assets are `libwebrtc-<config id>-<triple>.tar.xz` (each
+build's whole directory: `include/`, `lib/libwebrtc.a`, `.source`,
+`LICENSE.md`, `args.gn`, `webrtc.ninja`, ...) and a `.sha256` for each.
+`scripts/libwebrtc-assets.sh fetch [<triple>...|all]` downloads, verifies,
+unpacks into `third_party/libwebrtc-upstream/` and runs `gyp-webrtc.py
+check`; it keeps a build that already matches, and also works locally
+(e.g. `fetch linux-arm64` for the Docker run instead of copying it from
+gpubox). `WRTC_LIBWEBRTC_BASE_URL` downloads from elsewhere (any URL curl
+reads), e.g. a local `python3 -m http.server` over the packed files.
+
+So **whenever the config id changes** (a new upstream pin, recipe, gn args
+or patches), CI fails at the fetch until the new assets are up:
+
+1. Rebuild all three triples ("Rebuilding libwebrtc").
+2. In the main checkout, with the three builds in
+   `third_party/libwebrtc-upstream/`: `scripts/libwebrtc-assets.sh pack`.
+   It refuses a build that doesn't match the checkout, writes
+   `artifacts/libwebrtc/`, checks each asset is under GitHub's 2 GiB limit
+   (at baece4cbd14b: darwin-arm64 135 MiB, linux-arm64 46 MiB, linux-x64
+   49 MiB) and prints the upload command, filled in.
+3. The user uploads them (an agent never does; it's outward-facing):
+
+   ```sh
+   id=$(python3 scripts/gyp-webrtc.py config-id)
+   gh release create "libwebrtc-$id" --repo kevindhanna/webrtc --target main --latest=false \
+     --title "libwebrtc $id" --notes "libwebrtc builds for config id $id (scripts/libwebrtc-assets.sh)" \
+     artifacts/libwebrtc/libwebrtc-"$id"-*
+   ```
+
+   `--latest=false` keeps the repo's "Latest release" for the npm
+   versions; the tag doesn't match `v*`, so it starts no release run. To
+   replace or add assets later: `gh release upload "libwebrtc-$id" --repo
+   kevindhanna/webrtc --clobber artifacts/libwebrtc/libwebrtc-"$id"-*`.
+   Without `gh`, the same through the API with a token that can write the
+   repo's contents (a fine-grained token with "Contents: read and write"):
+
+   ```sh
+   id=$(python3 scripts/gyp-webrtc.py config-id); token=...   # the token
+   api=https://api.github.com/repos/kevindhanna/webrtc
+   release=$(curl -fsS -X POST -H "Authorization: Bearer $token" "$api/releases" \
+     -d "{\"tag_name\":\"libwebrtc-$id\",\"target_commitish\":\"main\",\"name\":\"libwebrtc $id\",\"make_latest\":\"false\"}" |
+     node -p 'JSON.parse(require("fs").readFileSync(0)).id')
+   for f in artifacts/libwebrtc/libwebrtc-"$id"-*; do
+     curl -fsS -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/octet-stream" \
+       --data-binary @"$f" "https://uploads.github.com/repos/kevindhanna/webrtc/releases/$release/assets?name=$(basename "$f")" >/dev/null
+   done
+   ```
+
+4. Rerun the failed CI jobs. Old `libwebrtc-*` releases can stay: branches
+   and tags of that configuration still fetch them.
+
+**Releasing a version** (after the first, below):
+
+1. On `main`, bump `version` in `package.json` (the platform packages and
+   the main package's `optionalDependencies` follow it) and commit.
+2. `git tag v<version> && git push origin v<version>`.
+3. `release.yml` then: checks the tag is `v` plus `package.json`'s
+   version; builds each platform's binary on its own runner with
+   `scripts/prebuild.sh <triple>` against the fetched libwebrtc (darwin-arm64
+   on macos-15; linux-x64 and linux-arm64 in Docker on the Ubuntu runners,
+   which `prebuild.sh` does on any host of that architecture); runs
+   `scripts/package.sh --strict`; smoke-tests clean, offline installs
+   (`scripts/smoke-install.sh`) in `node:24-bookworm-slim` on x64 and
+   arm64 and with npm and pnpm on macOS; then, in the `npm` environment
+   (where you approve the run, if the environment requires it), publishes
+   with `scripts/npm-publish.mjs`: the three platform packages, then the main
+   package, each by `npm publish <tarball> --access public --provenance`
+   through trusted publishing (OIDC: `id-token: write`, npm 11.5.1 or later,
+   no token). A version that's already in the registry is skipped, so
+   rerunning a partly failed run publishes only the rest. A prerelease
+   version (`0.2.0-rc.1`) goes out under the `next` dist-tag.
+4. The tarballs are the `packages` artifact of the run.
+
+**The first publish** (0.1.0) is manual, from local tarballs: npm only lets
+a package configure trusted publishing once it exists. In the main checkout,
+on an up-to-date `main`:
+
+```sh
+scripts/package.sh --strict            # the existing prebuilds are fine unless native inputs changed;
+                                       # it says so if a binary needs rebuilding (scripts/prebuild.sh all)
+scripts/smoke-install.sh artifacts     # and the Docker smoke test above, for linux-arm64
+npm login                              # an account that can publish to the @kdh.codes scope
+npm publish ./artifacts/kdh.codes-webrtc-darwin-arm64-0.1.0.tgz --access public
+npm publish ./artifacts/kdh.codes-webrtc-linux-arm64-0.1.0.tgz --access public
+npm publish ./artifacts/kdh.codes-webrtc-linux-x64-0.1.0.tgz --access public
+npm publish ./artifacts/kdh.codes-webrtc-0.1.0.tgz --access public
+```
+
+(Keep the `./`: without it npm reads `artifacts/x.tgz` as a GitHub repo.
+Add `--otp <code>` if the account uses 2FA for writes. `node
+scripts/npm-publish.mjs --no-provenance artifacts` does the same four in the
+same order, skipping any already published. Provenance needs CI, so the
+first versions have none.) Check it with `npm view @kdh.codes/webrtc` and an
+`npm install @kdh.codes/webrtc` in an empty directory.
+
+Then, for each of the four packages (`@kdh.codes/webrtc`,
+`@kdh.codes/webrtc-darwin-arm64`, `-linux-arm64`, `-linux-x64`), on
+npmjs.com: the package's Settings, "Trusted Publisher", GitHub Actions, with
+organization or user `kevindhanna`, repository `webrtc`, workflow filename
+`release.yml` and environment name `npm`. Once all four publish from CI,
+"Require two-factor authentication and disallow tokens" in the same settings
+stops token publishes. On GitHub: Settings, Environments, `npm` (a run
+creates it if it doesn't exist), with yourself as a required reviewer and
+deployments limited to tags matching `v*`. Optionally push `v0.1.0` too:
+the release run then builds and smoke-tests 0.1.0 from CI and skips the
+publish, since it's out.
+
+What's only known to work once it has run on GitHub (none of it could run
+locally): the runners' toolchains (Xcode's clang on macos-15, Docker on the
+arm64 runner), the Actions caches, artifact passing between jobs, OIDC
+and provenance, and the `npm` environment. The scripts the workflows call
+were all run locally, and the workflows pass `actionlint`.
 
 ### Debugging libwebrtc
 

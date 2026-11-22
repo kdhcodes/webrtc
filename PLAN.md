@@ -696,11 +696,14 @@ why it's there). How to build, refresh the TURN root certificates, and
 check a build matches the checkout: CONTRIBUTING-AGENTS.md, "Rebuilding
 libwebrtc".
 
-The libwebrtc builds stay local. `libwebrtc.a` is a build input only: it's
-linked statically into `wrtc.node`, and that's all we ship. Installs pull
-the platform package for their OS and CPU (`@kdh.codes/webrtc-<triple>`,
-`wrtc.node` only, about 6–8 MB compressed), which npm hosts once
-published. Nothing else needs hosting.
+`libwebrtc.a` is a build input only: it's linked statically into
+`wrtc.node`, and that's all we ship to npm. Installs pull the platform
+package for their OS and CPU (`@kdh.codes/webrtc-<triple>`, `wrtc.node`
+only, about 6–8 MB compressed) through the main package's
+`optionalDependencies`. Our libwebrtc builds are also published, as assets
+of a GitHub release per configuration (`libwebrtc-<config id>`,
+`scripts/libwebrtc-assets.sh`), so CI links against them without building
+libwebrtc (CONTRIBUTING-AGENTS.md, "CI and releases").
 
 ## Next steps
 
@@ -716,7 +719,9 @@ Resolved (2026-11-18):
   priority over data channels.
 - Never-closed PCs keep the process alive, as in wrtc (see Lifetime).
 - No CI for now; everything is verified locally (macOS directly, Linux via
-  Docker).
+  Docker). Superseded 2026-11-22: GitHub Actions builds and tests every
+  platform, and publishes to npm on `v*` tags (CONTRIBUTING-AGENTS.md, "CI
+  and releases").
 
 Known gaps:
 - The Docker image pins Node, pnpm and clang's major version, but not the
