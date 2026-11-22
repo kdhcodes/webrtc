@@ -22,6 +22,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scripts = dirname(fileURLToPath(import.meta.url));
 const dirs = ['mac-arm64-release', 'linux-x64-release', 'linux-arm64-release'];
+// Without the variables the script reads, which the Docker image and CI set
+// (WRTC_LIBWEBRTC_DIR, WRTC_LIBWEBRTC_CACHE): each test sets its own.
+const outsideEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([name]) => !name.startsWith('WRTC_LIBWEBRTC_')),
+);
 
 /** A checkout with pins, args, a patch, and a linux-x64 build of its config. */
 function fixture(t: TestContext) {
@@ -45,7 +50,7 @@ function fixture(t: TestContext) {
     spawnSync('bash', [join(root, 'scripts', 'libwebrtc-assets.sh'), ...args], {
       cwd: root,
       encoding: 'utf8',
-      env: { ...process.env, ...env },
+      env: { ...outsideEnv, ...env },
     });
   const python = (...args: string[]) =>
     spawnSync('python3', [join(root, 'scripts', 'gyp-webrtc.py'), ...args], { encoding: 'utf8' });
