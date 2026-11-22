@@ -285,3 +285,40 @@ test('an unknown triple is an error', (t) => {
   assert.notEqual(fetch.status, 0);
   assert.match(fetch.stderr, /unknown triple 'linux-riscv64'/);
 });
+
+const gnuTarWithXz =
+  /GNU tar/.test(spawnSync('tar', ['--version'], { encoding: 'utf8' }).stdout ?? '') &&
+  !spawnSync('xz', ['--version']).error;
+
+test('pack with GNU tar and xz (as in the devenv shell) gives the same bytes twice, without a warning', {
+  skip: gnuTarWithXz ? false : 'needs GNU tar and xz on PATH',
+}, (t) => {
+  const f = fixture(t);
+  f.build(f.upstream);
+  const first = f.runPack();
+  assert.equal(first.status, 0, first.stderr);
+  assert.doesNotMatch(first.stderr, /warning/);
+  const hashes = readFileSync(f.hashes, 'utf8');
+  assert.equal(f.runPack().status, 0);
+  assert.equal(readFileSync(f.hashes, 'utf8'), hashes);
+});
+
+test("pack falls back to macOS's bsdtar with a warning that its hashes differ", {
+  skip: process.platform === 'darwin' ? false : "needs macOS's /usr/bin/tar",
+}, (t) => {
+  const f = fixture(t);
+  f.build(f.upstream);
+  // No GNU tar (devenv's, or Homebrew's gtar) and no xz.
+  const pack = f.run(['pack', 'linux-x64'], {
+    WRTC_LIBWEBRTC_ASSETS: f.assets,
+    PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+  });
+  assert.equal(pack.status, 0, pack.stderr);
+  assert.match(pack.stderr, /warning: no GNU tar with xz here, so packing with bsdtar/);
+  assert.match(pack.stderr, /won't match a pack made in the devenv shell/);
+  const fetch = f.run(['fetch', 'linux-x64'], {
+    WRTC_LIBWEBRTC_DIR: join(f.root, 'fetched'),
+    WRTC_LIBWEBRTC_BASE_URL: pathToFileURL(f.assets).href,
+  });
+  assert.equal(fetch.status, 0, fetch.stderr);
+});

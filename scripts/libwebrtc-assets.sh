@@ -128,13 +128,33 @@ check_build() {
 cmd_pack() {
   local out="${WRTC_LIBWEBRTC_ASSETS:-$PWD/artifacts/libwebrtc}"
   local limit=$((2 * 1024 * 1024 * 1024))
-  local tar_opts=()
-  # GitHub's limit is per asset. Owners are dropped either way; bsdtar
-  # (macOS) would otherwise add AppleDouble files and extended attributes,
-  # which GNU tar warns about on extraction.
-  if tar --version 2>/dev/null | grep -q 'GNU tar'; then
+  local tar_opts=() tar_bin="" candidate
+  # GitHub's limit is per asset. The committed hashes are of archives made
+  # with GNU tar and xz (the devenv shell has both), whose output is the
+  # same for the same build. bsdtar (macOS's tar) writes other bytes, so its
+  # hashes won't match an earlier pack's: it's only the fallback, with a
+  # warning. Owners are dropped either way; bsdtar would otherwise add
+  # AppleDouble files and extended attributes, which GNU tar warns about on
+  # extraction.
+  if command -v xz >/dev/null; then
+    for candidate in tar gtar; do
+      if command -v "$candidate" >/dev/null &&
+        "$candidate" --version 2>/dev/null | grep -q 'GNU tar'; then
+        tar_bin="$candidate"
+        break
+      fi
+    done
+  fi
+  if [ -n "$tar_bin" ]; then
     tar_opts=(--owner=0 --group=0 --numeric-owner --sort=name)
+  elif tar --version 2>/dev/null | grep -q 'GNU tar'; then
+    die "GNU tar needs xz to compress; run pack in the devenv shell, which has both"
   else
+    log "warning: no GNU tar with xz here, so packing with $(tar --version 2>/dev/null | head -1)." \
+      "Its archives differ byte for byte from GNU tar's, so the hashes recorded in $hashes" \
+      "won't match a pack made in the devenv shell: upload exactly these archives with" \
+      "these hashes, or pack again in the devenv shell."
+    tar_bin=tar
     tar_opts=(--uid 0 --gid 0 --no-mac-metadata --no-xattrs)
     export COPYFILE_DISABLE=1
   fi
@@ -160,7 +180,7 @@ cmd_pack() {
     asset="$(asset_name "$t")"
     log "packing $base/$dir into $out/$asset"
     if command -v xz >/dev/null; then
-      tar -C "$base" "${tar_opts[@]}" -cf - "$dir" | xz -T0 -6 >"$out/$asset.partial"
+      "$tar_bin" -C "$base" "${tar_opts[@]}" -cf - "$dir" | xz -T0 -6 >"$out/$asset.partial"
     else
       # bsdtar compresses with its own liblzma (single-threaded).
       tar -C "$base" "${tar_opts[@]}" -cJf - "$dir" >"$out/$asset.partial"
@@ -174,7 +194,7 @@ cmd_pack() {
   # Replaces these assets' lines and keeps every other config's.
   {
     if [ -f "$hashes" ]; then
-      for t in $picked; do echo "$(asset_name "$t")"; done |
+      for t in $picked; do asset_name "$t"; done |
         awk 'NR == FNR { packed[$1] = 1; next } !($2 in packed)' - "$hashes"
     fi
     printf '%s' "$recorded"

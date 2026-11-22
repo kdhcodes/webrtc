@@ -495,7 +495,7 @@ them locally first.
 ### CI and releases
 
 The repo is public at `github.com/kevindhanna/webrtc`, so GitHub Actions'
-runners are free. Two workflows, plus a local action. Actions from GitHub
+runners are free. Three workflows, plus a local action. Actions from GitHub
 (`actions/*`) are pinned by major version, others by commit SHA with the
 version in a comment.
 
@@ -514,22 +514,26 @@ version in a comment.
     `docker/linux.Dockerfile`, exactly as locally, so the addon links (and
     gets its glibc floor) as the released binaries do. The build stage builds
     and typechecks; `docker run` runs `test` and `test:exit`; linux-x64 also
-    runs `pnpm run wpt` (about 4 minutes) and uploads `test/wpt/out`. Only
+    runs `pnpm run wpt` (about 4 minutes) and uploads `test/wpt/out` (for
+    digging into failures, and for the badge). Only
     the image's `toolchain` and `deps` stages (apt, clang, Node,
     node_modules) go to the Actions cache, never the libwebrtc layer.
-  - `WPT badge`, on pushes to `main` only, the one job with `contents:
-    write`: `scripts/wpt-report.mjs` turns linux-x64's WPT results into
-    `wpt.json` (the README's shields.io badge: subtests passed out of all)
-    and `WPT.md` (the page the badge links to: the total, a pass/fail table
-    by section, and per section every test and each subtest that didn't pass,
-    with its reason from `test/wpt/expectations.json`). Both are force-pushed
-    as the single commit of the `badges` branch. The sections are a table at
-    the top of the script; a test matching none lands in "Other", which its
-    test keeps empty for the current suite, so a WPT vendor bump may need a
-    pattern there.
   - Not in CI: the Chrome interop tests and `test/sfu` (a browser download
     and timing-sensitive media on shared runners; run them locally).
 - `.github/workflows/release.yml`, on tags `v*`: below.
+- `.github/workflows/wpt-badge.yml`, after each CI run that succeeded on a
+  push to `main` (`workflow_run`), so a failed badge never fails CI, which
+  releases require: `scripts/wpt-report.mjs` turns that run's linux-x64
+  WPT results artifact into `wpt.json` (the README's shields.io badge:
+  subtests passed out of all) and `WPT.md` (the page the badge links to:
+  the total, a pass/fail table by section, and per section every test and
+  each subtest that didn't pass, with its reason from
+  `test/wpt/expectations.json`), and force-pushes both, from a fresh repo,
+  as the single commit of the `badges` branch. It's the only job with
+  `contents: write`, runs main's own workflow and script (never a pull
+  request's), and one run at a time. The sections are a table at the top of
+  the script; a test matching none lands in "Other", which its test keeps
+  empty for the current suite, so a WPT vendor bump may need a pattern there.
 - `.github/actions/libwebrtc`: fetches the libwebrtc build for the
   checkout's config id with `scripts/libwebrtc-assets.sh fetch <triple>`,
   caching the downloaded archive under its committed SHA-256
@@ -573,8 +577,12 @@ this order:
    `artifacts/libwebrtc/`, checks each asset is under GitHub's 2 GiB limit
    (at baece4cbd14b: darwin-arm64 135 MiB, linux-arm64 46 MiB, linux-x64
    49 MiB), records their SHA-256s in `third_party/libwebrtc-assets.sha256`
-   and prints the upload command, filled in. Packing is deterministic, so
-   for baece4cbd14b the recorded hashes are the ones already committed.
+   and prints the upload command, filled in. Run it in the devenv shell: it
+   packs with GNU tar and xz, whose output is the same for the same build,
+   so for baece4cbd14b the recorded hashes are the ones already committed.
+   macOS's own tar (bsdtar) writes other bytes, so other hashes; `pack`
+   falls back to it only without GNU tar and xz on `PATH` (it also finds
+   Homebrew's `gtar`), with a warning.
    Commit the hashes file with the change that needs the new build.
 3. The user uploads them (an agent never does; it's outward-facing). With
    `gh`:
