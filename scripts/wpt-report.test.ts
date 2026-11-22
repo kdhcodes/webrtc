@@ -13,7 +13,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import type { Expectation, TestResult } from './wpt-lib.mjs';
-import { badge, OTHER, page, sectionOf } from './wpt-report.mjs';
+import { badge, code, OTHER, page, sectionOf } from './wpt-report.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const results: Record<string, TestResult> = JSON.parse(
@@ -77,6 +77,8 @@ test('tests land in the section of their API', () => {
     'webrtc/RTCConfiguration-iceServers.html?rest': 'Peer connection',
     'webrtc/simplecall.https.html': 'Peer connection',
     'webrtc/RTCTrackEvent-fire.html': 'Peer connection',
+    'webrtc/RTCPeerConnectionIceEvent-constructor.html': 'ICE and DTLS',
+    'webrtc/RTCPeerConnectionIceErrorEvent.html': 'ICE and DTLS',
     'webrtc/RTCRtpSender-encode-same-track-twice.https.html': 'RTP',
     'webrtc/RTCRtpSender-setParameters.html?rest': 'RTP',
     'webrtc/RTCPeerConnection-getStats.https.html?rest': 'Stats',
@@ -177,4 +179,31 @@ test('the CLI writes wpt.json and WPT.md', (t) => {
     '{"schemaVersion":1,"label":"WPT","message":"2206 / 2337","color":"green"}\n',
   );
   assert.equal(readFileSync(join(dir, 'out', 'WPT.md'), 'utf8'), md);
+});
+
+test('names are code spans shown as they are: no entities, fences longer than their backticks', () => {
+  assert.equal(code('plain'), '`plain`');
+  assert.equal(code('a <b> & c'), '`a <b> & c`');
+  assert.equal(code('x `y` z'), '``x `y` z``');
+  assert.equal(code('`starts and ends`'), '`` `starts and ends` ``');
+  assert.equal(code('a | b', { table: true }), '`a \\| b`');
+});
+
+test('a subtest name with <, & and a backtick appears in the page as written', () => {
+  const shown = page(
+    {
+      'webrtc/RTCPeerConnection-x.html': {
+        status: 'OK',
+        subtests: { 'a <b> & `c` d': { status: 'FAIL' }, ok: { status: 'PASS' } },
+      },
+    },
+    {
+      'webrtc/RTCPeerConnection-x.html': {
+        status: 'OK',
+        subtests: { 'a <b> & `c` d': 'FAIL', ok: 'PASS' },
+      },
+    },
+    options,
+  );
+  assert.ok(shown.includes('- `RTCPeerConnection-x.html` ``a <b> & `c` d``: FAIL\n'), shown);
 });

@@ -5,6 +5,7 @@ import type { Expectation, TestResult } from './wpt-lib.mjs';
 export const SECTIONS: [string, RegExp][];
 export const OTHER: string;
 export function sectionOf(id: string): string;
+export function code(text: string, options?: { table?: boolean }): string;
 
 export interface Badge {
   schemaVersion: 1;

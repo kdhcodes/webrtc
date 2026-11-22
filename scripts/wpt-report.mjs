@@ -27,8 +27,9 @@ export const SECTIONS = [
   ['Simulcast', /simulcast/i],
   ['Codecs', /vp8|vp9|av1|h264|h265|codec/i],
   ['Stats', /stats/i],
-  // Handover tests move a connection between transports, data channels or not.
-  ['ICE and DTLS', /handover/],
+  // Handover tests move a connection between transports, data channels or
+  // not; the ICE events are ICE's, though named after the peer connection.
+  ['ICE and DTLS', /handover|^RTCPeerConnectionIce(Error)?Event/],
   ['Data channels', /datachannel|sctp/i],
   ['Peer connection', /^(RTCPeerConnection|RTCConfiguration)/],
   [
@@ -81,16 +82,25 @@ export function badge(results) {
 }
 
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-/** Text for Markdown and the HTML GitHub allows in it; `|` too inside tables. */
-const escapeText = (text, { table = false } = {}) => {
-  const html = String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return table ? html.replace(/\|/g, '\\|') : html;
-};
-/** A test or subtest name as code, whatever backticks it holds. */
-const code = (text, options) => {
-  const fence = String(text).includes('`') ? '``' : '`';
-  return `${fence}${escapeText(text, options).replace(/^`|`$/g, ' $& ')}${fence}`;
-};
+/** Plain text (a reason) for Markdown, where GitHub would read <tags>. */
+const escapeText = (text) =>
+  String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * A test or subtest name as a code span, which shows its text as is (no
+ * entities: `&lt;` would show literally), so the only escaping is the
+ * span's own: a fence longer than any run of backticks in the name, a space
+ * inside it where the name starts or ends with a backtick or a space, and
+ * in a table cell, `\|` for `|` (GitHub's tables need it even in code).
+ */
+export function code(text, { table = false } = {}) {
+  let body = String(text).replace(/\r?\n/g, ' ');
+  const longest = Math.max(0, ...(body.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = '`'.repeat(longest + 1);
+  const pad = /^[` ]|[` ]$/.test(body) ? ' ' : '';
+  if (table) body = body.replace(/\|/g, '\\|');
+  return `${fence}${pad}${body}${pad}${fence}`;
+}
 
 /** The explicit reason for a test's or subtest's expectation, if any. */
 function reasonOf(expectation) {
