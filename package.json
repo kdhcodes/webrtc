@@ -1,10 +1,29 @@
 {
   "name": "@kdh.codes/webrtc",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "gypfile": false,
   "description": "WebRTC for Node.js: a native addon over libwebrtc with a spec-shaped API",
+  "keywords": [
+    "webrtc",
+    "wrtc",
+    "libwebrtc",
+    "rtcpeerconnection",
+    "peer-connection",
+    "node-webrtc",
+    "native-addon"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevindhanna/webrtc.git"
+  },
+  "homepage": "https://github.com/kevindhanna/webrtc#readme",
+  "bugs": {
+    "url": "https://github.com/kevindhanna/webrtc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -17,6 +36,7 @@
     "build-libwebrtc": "scripts/build-libwebrtc.sh",
     "build": "node-gyp rebuild -j max && scripts/check-undefined.sh",
     "build:ts": "tsc -p tsconfig.json",
+    "prepublishOnly": "echo 'Publish the tarballs scripts/package.sh makes in artifacts/, not the repo (CONTRIBUTING-AGENTS.md, \"CI and releases\").' >&2 && exit 1",
     "typecheck": "tsc -p tsconfig.test.json && tsc -p tsconfig.dom.json",
     "gen:idl": "node scripts/gen-idl.mjs",
     "test": "node --test --test-timeout=60000 'lib/**/*.test.ts' 'scripts/**/*.test.ts' 'test/**/*.test.ts'",

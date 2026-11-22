@@ -14,6 +14,9 @@ out about 20 GB into `~/src/webrtc-m150` and takes a while, later ones
 minutes), then `pnpm install`, then `pnpm run build`. The Linux builds come
 from an x64 Linux host (gpubox, below) and are copied here for Docker:
 `rsync -a gpubox:repos/personal/libwebrtc-rs-js-libwebrtc/$(python3 scripts/gyp-webrtc.py config-id)/linux-arm64-release third_party/libwebrtc-upstream/`.
+Once a configuration's builds are uploaded ("CI and releases"),
+`scripts/libwebrtc-assets.sh fetch all` gets all three instead of
+building (about 230 MB to download).
 
 In a git worktree: `scripts/setup-worktree.sh`. It links the main
 checkout's `third_party/libwebrtc-upstream` (about 1 GB per platform,
@@ -358,7 +361,11 @@ Whenever the libwebrtc build changes (the upstream pin, `third_party/args`,
    `package` step refuses a checkout whose applied patches aren't
    `patches/`.
 4. Rerun the third-party notices steps (Packaging), then
-   `scripts/prebuild.sh all`.
+   `scripts/prebuild.sh all`. Pack the builds (`scripts/libwebrtc-assets.sh
+   pack`), commit the hashes it records in
+   `third_party/libwebrtc-assets.sha256`, and have the user upload them
+   before the change is pushed ("CI and releases"): CI can't build or test
+   the new configuration until they're up.
 5. Check `turns:` against a real server on each platform: `WRTC_TURNS_PROBE=1
    node --test test/integration/turns.test.ts` here, on gpubox (through
    `gpubox-test.sh`) and in the Linux arm64 image (`docker run --rm -e
@@ -369,20 +376,28 @@ Whenever the libwebrtc build changes (the upstream pin, `third_party/args`,
    Without the variable the file runs only its offline test: a loopback
    server with a throwaway CA's certificate must be refused.
 
-### Packaging (prebuilt, locally installable tarballs)
+### Packaging (prebuilt tarballs, the ones npm gets)
 
-Nothing is published. `artifacts/` (gitignored) gets a main package,
-`@kdh.codes/webrtc` (the JS in `dist/` and its types), and one platform
+`artifacts/` (gitignored) gets a main package,
+`@kdh.codes/webrtc` (the JS in `dist/`, its types and `README.md`), and one platform
 package per supported platform (`@kdh.codes/webrtc-darwin-arm64`,
 `-linux-arm64`, `-linux-x64`) carrying `wrtc.node`, with `os`/`cpu` (and
 `libc: glibc`) fields. The main package
-lists them as optional `peerDependencies` (see `scripts/package.sh` for why
-not `optionalDependencies`). `lib/internal/native.ts` loads
+lists them as `optionalDependencies` at exactly its own version, as wrtc
+does, so installs pick the platform's package automatically
+(`PLATFORM_DEPS=peer scripts/package.sh` makes them optional
+`peerDependencies` instead; `scripts/package.sh` says why that used to be
+the default). The manifests come from `scripts/package-manifests.mjs`:
+`name`, `version`, `license`, `repository`, `homepage`, `bugs` and
+`publishConfig` are taken from `package.json` for every package (npm's
+provenance check needs `repository` in each). These tarballs are what gets
+published ("CI and releases" below). `lib/internal/native.ts` loads
 `build/Release/wrtc.node` when it exists (a checkout), and otherwise the
 installed `<name>-<platform>-<arch>` package. Renaming the package is a
 one-line change: `name` in `package.json`. A scoped name packs as
-`<scope>-<name>-<version>.tgz` (`kdh.codes-webrtc-0.0.0.tgz`), without
-the `@` and with the `/` as `-`.
+`<scope>-<name>-<version>.tgz` (`kdh.codes-webrtc-0.1.0.tgz`), without
+the `@` and with the `/` as `-`. The repo root's `package.json` isn't a
+package to publish: its `prepublishOnly` fails `npm publish` there.
 
 Build all three binaries and package them, from an arm64 Mac, in this order:
 
@@ -390,6 +405,7 @@ Build all three binaries and package them, from an arm64 Mac, in this order:
 scripts/prebuild.sh darwin-arm64   # pnpm run build here, strip -x
 scripts/prebuild.sh linux-arm64    # Docker: docker/linux.Dockerfile --target addon
 scripts/prebuild.sh linux-x64      # gpubox, via gpubox-test.sh; cleans up after itself
+                                   # (on an x64 host, e.g. CI, Docker as for linux-arm64)
 scripts/package.sh                 # build:ts, then artifacts/*.tgz; lists missing platforms
 ```
 
@@ -404,8 +420,9 @@ native inputs or it was built from uncommitted native sources;
 `package.sh --strict` fails instead. A JS-only change needs only
 `package.sh`, not new binaries. Then install the
 main tarball plus the platform's, e.g. `npm install
-./kdh.codes-webrtc-0.0.0.tgz ./kdh.codes-webrtc-darwin-arm64-0.0.0.tgz` or the
-same with `pnpm add`; nothing is built on install.
+./kdh.codes-webrtc-0.1.0.tgz ./kdh.codes-webrtc-darwin-arm64-0.1.0.tgz` or the
+same with `pnpm add`; nothing is built on install. (Offline, the other two
+optional dependencies fail to resolve and are skipped.)
 
 Smoke-test them from clean installs with `scripts/smoke-install.sh [--pm
 pnpm] artifacts`: it installs only the two tarballs, offline, into a fresh
@@ -472,7 +489,208 @@ which uses the system compiler on Linux and fails. Build explicitly with
 
 Before handing work back, all of these must pass on macOS: `build`,
 `typecheck`, `test`, `test:exit` and `lint`. Native changes must also pass the Docker
-run.
+run. CI (below) runs the same on every platform, but only once pushed: run
+them locally first.
+
+### CI and releases
+
+The repo is public at `github.com/kevindhanna/webrtc`, so GitHub Actions'
+runners are free. Three workflows, plus a local action. Actions from GitHub
+(`actions/*`) are pinned by major version, others by commit SHA with the
+version in a comment.
+
+- `.github/workflows/ci.yml`, on pushes to `main` and on pull requests. A
+  pull request's newer push cancels its older run; every push to `main` runs
+  to the end, since releases require CI to have passed on their commit.
+  - `lint and typecheck` (ubuntu-24.04): `pnpm run lint` (with
+    clang-format pinned to devenv's version, from PyPI) and `typecheck`, once,
+    since neither is per platform.
+  - `darwin-arm64` (macos-26, arm64): `pnpm run build` on the runner with
+    node-gyp (pinned to devenv's) and the image's default Xcode, its newest
+    (26.6, Apple clang 21, close to devenv's clang 21; macos-15's default is
+    16.4 with clang 17), then `typecheck`, `test` and `test:exit`. Both
+    compile against the system libc++, which libwebrtc's mac build uses.
+  - `linux-x64` (ubuntu-24.04) and `linux-arm64` (ubuntu-24.04-arm):
+    `docker/linux.Dockerfile`, exactly as locally, so the addon links (and
+    gets its glibc floor) as the released binaries do. The build stage builds
+    and typechecks; `docker run` runs `test` and `test:exit`; linux-x64 also
+    runs `pnpm run wpt` (about 4 minutes) and uploads `test/wpt/out` (for
+    digging into failures, and for the badge). Only
+    the image's `toolchain` and `deps` stages (apt, clang, Node,
+    node_modules) go to the Actions cache, never the libwebrtc layer.
+  - Not in CI: the Chrome interop tests and `test/sfu` (a browser download
+    and timing-sensitive media on shared runners; run them locally).
+- `.github/workflows/release.yml`, on tags `v*`: below.
+- `.github/workflows/wpt-badge.yml`, after each CI run that succeeded on a
+  push to `main` (`workflow_run`), so a failed badge never fails CI, which
+  releases require: `scripts/wpt-report.mjs` turns that run's linux-x64
+  WPT results artifact into `wpt.json` (the README's shields.io badge:
+  subtests passed out of all) and `WPT.md` (the page the badge links to:
+  the total, a pass/fail table by section, and per section every test and
+  each subtest that didn't pass, with its reason from
+  `test/wpt/expectations.json`), and force-pushes both, from a fresh repo,
+  as the single commit of the `badges` branch. It's the only job with
+  `contents: write`, runs main's own workflow and script (never a pull
+  request's), and one run at a time. The sections are a table at the top of
+  the script; a test matching none lands in "Other", which its test keeps
+  empty for the current suite, so a WPT vendor bump may need a pattern there.
+- `.github/actions/libwebrtc`: fetches the libwebrtc build for the
+  checkout's config id with `scripts/libwebrtc-assets.sh fetch <triple>`,
+  caching the downloaded archive under its committed SHA-256
+  (`WRTC_LIBWEBRTC_CACHE`).
+
+**libwebrtc for CI.** CI never builds libwebrtc. It downloads ours from the
+GitHub release tagged `libwebrtc-<config id>` (`python3
+scripts/gyp-webrtc.py config-id`; "Linux x64 on gpubox" says what it
+covers), whose assets are `libwebrtc-<config id>-<triple>.tar.xz`, each
+build's whole directory (`include/`, `lib/libwebrtc.a`, `.source`,
+`LICENSE.md`, `args.gn`, `webrtc.ninja`, ...). Their SHA-256s are committed
+in `third_party/libwebrtc-assets.sha256`, one line per config id and triple,
+and `fetch` checks every download (and every cached archive) against those,
+never against anything from the release: whoever could replace an asset
+could replace a hash next to it too. `scripts/libwebrtc-assets.sh fetch
+[<triple>...|all]` downloads, verifies, unpacks into
+`third_party/libwebrtc-upstream/` and runs `gyp-webrtc.py check`; it keeps a
+build that already matches, and also works locally (e.g. `fetch
+linux-arm64` for the Docker run instead of copying it from gpubox).
+`WRTC_LIBWEBRTC_BASE_URL` downloads from elsewhere (any URL curl reads),
+e.g. a local `python3 -m http.server` over the packed files.
+
+Turn on GitHub's immutable releases (Settings, General, Releases, "Enable
+release immutability"): a published release's assets and tag can then
+never be replaced. A `libwebrtc-*` release is never edited anyway: to change
+an asset, change the build (or bump `libwebrtc_recipe` in
+`scripts/build-libwebrtc.sh`), which makes a new config id and a new
+release. Without immutability, replacing an asset in place would also need
+its new hash committed in a reviewed change, or every fetch fails.
+
+So **whenever the config id changes** (a new upstream pin, recipe, gn args
+or patches), and once before CI first runs, the assets must be up before
+the commit that needs them reaches GitHub, or its CI fails at the fetch. In
+this order:
+
+1. Rebuild all three triples ("Rebuilding libwebrtc"). (Not for the first
+   time: the main checkout's builds are config baece4cbd14b.)
+2. In the main checkout, with the three builds in
+   `third_party/libwebrtc-upstream/`: `scripts/libwebrtc-assets.sh pack`.
+   It refuses a build that doesn't match the checkout, writes
+   `artifacts/libwebrtc/`, checks each asset is under GitHub's 2 GiB limit
+   (at baece4cbd14b: darwin-arm64 135 MiB, linux-arm64 46 MiB, linux-x64
+   49 MiB), records their SHA-256s in `third_party/libwebrtc-assets.sha256`
+   and prints the upload command, filled in. Run it in the devenv shell: it
+   packs with GNU tar and xz, whose output is the same for the same build,
+   so for baece4cbd14b the recorded hashes are the ones already committed.
+   macOS's own tar (bsdtar) writes other bytes, so other hashes; `pack`
+   falls back to it only without GNU tar and xz on `PATH` (it also finds
+   Homebrew's `gtar`), with a warning.
+   Commit the hashes file with the change that needs the new build.
+3. The user uploads them (an agent never does; it's outward-facing). With
+   `gh`:
+
+   ```sh
+   id=$(python3 scripts/gyp-webrtc.py config-id)
+   gh release create "libwebrtc-$id" --repo kevindhanna/webrtc --target main --latest=false \
+     --title "libwebrtc $id" --notes "libwebrtc builds for config id $id (scripts/libwebrtc-assets.sh)" \
+     artifacts/libwebrtc/libwebrtc-"$id"-*.tar.xz
+   ```
+
+   (`gh` uploads the assets to a draft and then publishes it, which an
+   immutable release needs.) `--latest=false` keeps the repo's "Latest
+   release" for the npm versions; the tag doesn't match `v*`, so it starts
+   no release run. Without `gh`, the same through the API, with a token
+   that can write the repo's contents (a fine-grained token with "Contents:
+   read and write"): create a draft, upload, then publish it.
+
+   ```sh
+   id=$(python3 scripts/gyp-webrtc.py config-id); token=...   # the token
+   api=https://api.github.com/repos/kevindhanna/webrtc
+   auth="Authorization: Bearer $token"
+   release=$(curl -fsS -X POST -H "$auth" "$api/releases" \
+     -d "{\"tag_name\":\"libwebrtc-$id\",\"target_commitish\":\"main\",\"name\":\"libwebrtc $id\",\"draft\":true,\"make_latest\":\"false\"}" |
+     node -p 'JSON.parse(require("fs").readFileSync(0)).id')
+   for f in artifacts/libwebrtc/libwebrtc-"$id"-*.tar.xz; do
+     curl -fsS -X POST -H "$auth" -H "Content-Type: application/octet-stream" --data-binary @"$f" \
+       "https://uploads.github.com/repos/kevindhanna/webrtc/releases/$release/assets?name=$(basename "$f")" >/dev/null
+   done
+   curl -fsS -X PATCH -H "$auth" "$api/releases/$release" -d '{"draft":false,"make_latest":"false"}' >/dev/null
+   ```
+
+4. Only then push the commit (or merge to `main`). Old `libwebrtc-*`
+   releases stay: branches and tags of that configuration still fetch them.
+
+**Releasing a version** (after the first, below):
+
+1. On `main`, bump `version` in `package.json` (the platform packages and
+   the main package's `optionalDependencies` follow it), commit and push.
+2. `git tag v<version> && git push origin v<version>`.
+3. `release.yml` then: checks the tag is `v` plus `package.json`'s
+   version; waits for CI to pass on the tagged commit
+   (`scripts/ci-status.mjs`: a successful `ci.yml` run of that commit,
+   waiting up to 90 minutes while one is still going; it fails if they all
+   failed or none ran, e.g. for a commit that was never pushed to `main`);
+   builds each platform's binary on its own runner with
+   `scripts/prebuild.sh <triple>` against the fetched libwebrtc (darwin-arm64
+   on macos-26, as in CI; linux-x64 and linux-arm64 in Docker on the Ubuntu
+   runners, which `prebuild.sh` does on any host of that architecture); runs
+   `scripts/package.sh --strict`; smoke-tests clean, offline installs
+   (`scripts/smoke-install.sh`) in `node:24-bookworm-slim` on x64 and
+   arm64 and with npm and pnpm on macos-15 (the older macOS, for the binary
+   built on 26); then, in the `npm` environment (where you approve the run,
+   if the environment requires it), publishes with
+   `scripts/npm-publish.mjs`: the three platform packages, then the main
+   package, each by `npm publish <tarball> --access public --provenance`
+   through trusted publishing (OIDC: `id-token: write`, Node 24's npm,
+   checked to be 11.5.1 or later, no token). A version that's already in the
+   registry is skipped, so rerunning a partly failed run publishes only the
+   rest. A prerelease version (`0.2.0-rc.1`) goes out under the `next`
+   dist-tag.
+4. The tarballs are the `packages` artifact of the run.
+
+**The first publish** (0.1.0) is manual, from local tarballs: npm only lets
+a package configure trusted publishing once it exists. In the main checkout,
+with the CI branch merged locally:
+
+1. Upload the libwebrtc assets (steps 2 and 3 above), then push `main`, so
+   CI's first run can fetch them.
+2. Build and publish:
+
+   ```sh
+   scripts/prebuild.sh all                # the Dockerfile's stage split changed the native build id,
+                                          # so prebuilds from before it are refused
+   scripts/package.sh --strict
+   scripts/smoke-install.sh artifacts     # and the Docker smoke test above, for linux-arm64
+   npm login                              # an account that can publish to the @kdh.codes scope
+   npm publish ./artifacts/kdh.codes-webrtc-darwin-arm64-0.1.0.tgz --access public
+   npm publish ./artifacts/kdh.codes-webrtc-linux-arm64-0.1.0.tgz --access public
+   npm publish ./artifacts/kdh.codes-webrtc-linux-x64-0.1.0.tgz --access public
+   npm publish ./artifacts/kdh.codes-webrtc-0.1.0.tgz --access public
+   ```
+
+   (Keep the `./`: without it npm reads `artifacts/x.tgz` as a GitHub repo.
+   Add `--otp <code>` if the account uses 2FA for writes. `node
+   scripts/npm-publish.mjs --no-provenance artifacts` does the same four in
+   the same order, skipping any already published. Provenance needs CI, so
+   the first version has none.) Check it with `npm view @kdh.codes/webrtc`
+   and an `npm install @kdh.codes/webrtc` in an empty directory.
+3. For each of the four packages (`@kdh.codes/webrtc`,
+   `@kdh.codes/webrtc-darwin-arm64`, `-linux-arm64`, `-linux-x64`), on
+   npmjs.com: the package's Settings, "Trusted Publisher", GitHub Actions,
+   with organization or user `kevindhanna`, repository `webrtc`, workflow
+   filename `release.yml` and environment name `npm`. Once all four publish
+   from CI, "Require two-factor authentication and disallow tokens" in the
+   same settings stops token publishes.
+4. On GitHub: Settings, Environments, `npm` (a run creates it if it doesn't
+   exist), with yourself as a required reviewer and deployments limited to
+   tags matching `v*`; and immutable releases (above).
+5. Optionally push `v0.1.0` too: the release run then builds and
+   smoke-tests 0.1.0 from CI and skips the publish, since it's out.
+
+What's only known to work once it has run on GitHub (none of it could run
+locally): the runners' toolchains (Xcode 26.6 on macos-26, Docker on the
+arm64 runner), the Actions caches, artifact passing between jobs, the CI
+gate's API calls, the badge push, OIDC and provenance, and the `npm`
+environment. The scripts the workflows call were all run locally, and the
+workflows pass `actionlint`.
 
 ### Debugging libwebrtc
 

@@ -1,0 +1,48 @@
+name: libwebrtc
+description: >
+  Fetches our libwebrtc build of this checkout's config id into
+  third_party/libwebrtc-upstream (scripts/libwebrtc-assets.sh fetch, from the
+  libwebrtc-<config id> release, checked against the SHA-256 committed in
+  third_party/libwebrtc-assets.sha256), with the downloaded archive cached
+  under that SHA-256.
+inputs:
+  triple:
+    description: darwin-arm64, linux-x64 or linux-arm64
+    required: true
+outputs:
+  config-id:
+    description: python3 scripts/gyp-webrtc.py config-id
+    value: ${{ steps.config.outputs.id }}
+  dir:
+    description: The fetched build's directory
+    value: ${{ steps.fetch.outputs.dir }}
+runs:
+  using: composite
+  steps:
+    - id: config
+      shell: bash
+      env:
+        TRIPLE: ${{ inputs.triple }}
+      run: |
+        id=$(python3 scripts/gyp-webrtc.py config-id)
+        sha256=$(scripts/libwebrtc-assets.sh sha256 "$TRIPLE")
+        echo "id=$id" >>"$GITHUB_OUTPUT"
+        echo "sha256=$sha256" >>"$GITHUB_OUTPUT"
+        echo "WRTC_LIBWEBRTC_CACHE=$HOME/.cache/wrtc-libwebrtc" >>"$GITHUB_ENV"
+    # Keyed by the committed hash too: a re-uploaded asset (with its new
+    # hash committed) never comes from a stale cache.
+    - uses: actions/cache@v6
+      with:
+        path: ~/.cache/wrtc-libwebrtc
+        key: libwebrtc-${{ steps.config.outputs.id }}-${{ inputs.triple }}-${{ steps.config.outputs.sha256 }}
+    - id: fetch
+      shell: bash
+      env:
+        TRIPLE: ${{ inputs.triple }}
+      run: |
+        scripts/libwebrtc-assets.sh fetch "$TRIPLE"
+        case "$TRIPLE" in
+          darwin-arm64) dir=mac-arm64-release ;;
+          *) dir="$TRIPLE-release" ;;
+        esac
+        echo "dir=$GITHUB_WORKSPACE/third_party/libwebrtc-upstream/$dir" >>"$GITHUB_OUTPUT"

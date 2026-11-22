@@ -1,0 +1,204 @@
+# Publishes a version to npm when its tag (v<package.json version>) is
+# pushed. CONTRIBUTING-AGENTS.md, "CI and releases".
+#
+# 1. The tag must be v<version> of package.json, and CI (ci.yml) must have
+#    passed on the tagged commit (waited for while it's still running).
+# 2. Each platform's wrtc.node is built on its own runner with
+#    scripts/prebuild.sh, against our libwebrtc build of the checkout's config
+#    id (the libwebrtc-<config id> release).
+# 3. scripts/package.sh --strict makes the four tarballs.
+# 4. They're installed from scratch and smoke-tested, offline, in
+#    node:24-bookworm-slim (x64 and arm64) and on macOS.
+# 5. scripts/npm-publish.mjs publishes the platform packages, then the main
+#    one, by npm trusted publishing (OIDC, with provenance; no token), from
+#    the `npm` environment, which can require an approval. A version already
+#    in the registry is skipped, so rerunning a partly failed run is safe.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  NODE_GYP_VERSION: "13.1.0"
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag is v<package.json version>
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME doesn't match package.json's version $version (expected v$version)"
+            exit 1
+          fi
+
+  ci:
+    name: CI passed on the tagged commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    permissions:
+      actions: read # the commit's ci.yml runs
+      contents: read # the checkout
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node scripts/ci-status.mjs --timeout-minutes 90
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  prebuild:
+    name: prebuild ${{ matrix.triple }}
+    needs: [version, ci]
+    strategy:
+      matrix:
+        include:
+          # As in ci.yml: macos-26 for its newest Xcode (Apple clang 21).
+          - triple: darwin-arm64
+            runner: macos-26
+          - triple: linux-x64
+            runner: ubuntu-24.04
+          - triple: linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/libwebrtc
+        with:
+          triple: ${{ matrix.triple }}
+      # darwin-arm64 builds on the runner (pnpm run build); Linux in
+      # docker/linux.Dockerfile, which installs its own toolchain.
+      - if: matrix.triple == 'darwin-arm64'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - if: matrix.triple == 'darwin-arm64'
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - if: matrix.triple == 'darwin-arm64'
+        run: |
+          xcodebuild -version
+          clang --version
+          npm install -g "node-gyp@$NODE_GYP_VERSION"
+          pnpm install --frozen-lockfile
+      - run: scripts/prebuild.sh ${{ matrix.triple }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: prebuild-${{ matrix.triple }}
+          path: artifacts/prebuilds/${{ matrix.triple }}/
+          if-no-files-found: error
+
+  package:
+    needs: prebuild
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: prebuild-*
+          path: artifacts/prebuilds
+      - name: Lay out the prebuilds as scripts/prebuild.sh does
+        run: |
+          for d in artifacts/prebuilds/prebuild-*; do
+            mv "$d" "artifacts/prebuilds/${d#artifacts/prebuilds/prebuild-}"
+          done
+          # Artifacts don't keep file modes.
+          chmod 755 artifacts/prebuilds/*/wrtc.node
+          head -n 50 artifacts/prebuilds/*/build-id artifacts/prebuilds/*/commit
+      - run: scripts/package.sh --strict
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: artifacts/*.tgz
+          if-no-files-found: error
+
+  smoke:
+    name: smoke ${{ matrix.triple }}
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - triple: linux-x64
+            runner: ubuntu-24.04
+          - triple: linux-arm64
+            runner: ubuntu-24.04-arm
+          # The oldest macOS runner: the binary is built on macos-26.
+          - triple: darwin-arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+          path: artifacts
+      # A stock image: no compiler, no libwebrtc, no network (an internal
+      # network still gives ICE a non-loopback interface).
+      - name: Install and run in node:24-bookworm-slim, offline
+        if: runner.os == 'Linux'
+        run: |
+          docker network create --internal wrtc-offline
+          docker run --rm --network wrtc-offline \
+            -v "$PWD/artifacts:/artifacts:ro" -v "$PWD/scripts:/scripts:ro" \
+            node:24-bookworm-slim bash /scripts/smoke-install.sh /artifacts
+      - if: runner.os == 'macOS'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - if: runner.os == 'macOS'
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install and run on macOS, with npm and pnpm
+        if: runner.os == 'macOS'
+        run: |
+          scripts/smoke-install.sh artifacts
+          scripts/smoke-install.sh --pm pnpm artifacts
+
+  publish:
+    needs: [package, smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@v7
+      # No registry-url: that writes an .npmrc expecting NODE_AUTH_TOKEN.
+      # Trusted publishing authenticates by OIDC instead.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: npm 11.5.1 or later (trusted publishing)
+        run: |
+          npm --version
+          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number);
+            if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) process.exit(1)' "$(npm --version)" ||
+            { echo "::error::npm $(npm --version) is older than 11.5.1, which trusted publishing needs"; exit 1; }
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+          path: artifacts
+      - run: node scripts/npm-publish.mjs artifacts

@@ -3,15 +3,19 @@
 # artifacts/prebuilds/<triple>/wrtc.node, for scripts/package.sh.
 #
 #   scripts/prebuild.sh darwin-arm64   # here, on an arm64 Mac: pnpm run build
-#   scripts/prebuild.sh linux-arm64    # Docker on an arm64 Mac (docker/linux.Dockerfile)
-#   scripts/prebuild.sh linux-x64      # on gpubox, through scripts/gpubox-test.sh
+#   scripts/prebuild.sh linux-arm64    # Docker (docker/linux.Dockerfile) on an arm64 host
+#   scripts/prebuild.sh linux-x64      # Docker on an x64 host (CI); from anywhere
+#                                      # else on gpubox, through scripts/gpubox-test.sh
 #   scripts/prebuild.sh all            # all three, in that order
 #
-# Each links our libwebrtc build (scripts/build-libwebrtc.sh): darwin-arm64
-# and linux-arm64 from third_party/libwebrtc-upstream/ here (or
-# WRTC_LIBWEBRTC_DIR), linux-x64 from the box's build for this checkout's
-# configuration (see scripts/gpubox-test.sh). Build those first; this script
-# doesn't. It refuses a libwebrtc build whose .source records other gn args,
+# A Linux binary builds in Docker whenever the host has its architecture, so
+# CI's Linux runners (.github/workflows/release.yml) and an arm64 Mac build
+# the same way. Each links our libwebrtc build (scripts/build-libwebrtc.sh,
+# or scripts/libwebrtc-assets.sh fetch): from third_party/libwebrtc-upstream/
+# here (or WRTC_LIBWEBRTC_DIR), except linux-x64 on gpubox, which uses the
+# box's build for this checkout's configuration (see
+# scripts/gpubox-test.sh). Get those first; this script doesn't. It refuses
+# a libwebrtc build whose .source records other gn args,
 # patches or upstream commit than the checkout has now
 # (scripts/gyp-webrtc.py check): the binary would carry a build id that
 # claims otherwise.
@@ -77,7 +81,8 @@ build_one() {
     darwin-arm64)
       [ "$(uname -sm)" = "Darwin arm64" ] || die "darwin-arm64 builds on an arm64 Mac only"
       [ -f "$(libwebrtc_dir "$triple")/lib/libwebrtc.a" ] ||
-        die "no libwebrtc build in $(libwebrtc_dir "$triple"); run scripts/build-libwebrtc.sh $triple"
+        die "no libwebrtc build in $(libwebrtc_dir "$triple"); run scripts/libwebrtc-assets.sh" \
+          "fetch $triple, or scripts/build-libwebrtc.sh $triple"
       check_libwebrtc "$triple" "$(libwebrtc_dir "$triple")/.source"
       cp "$(libwebrtc_dir "$triple")/.source" "$tmp/libwebrtc-source"
       pnpm run build
@@ -87,37 +92,14 @@ build_one() {
       codesign --verify "$tmp/wrtc.node"
       node -e "require(process.argv[1])" "$PWD/$tmp/wrtc.node"
       ;;
-    linux-arm64)
-      [ "$(uname -m)" = "arm64" ] || [ "$(uname -m)" = "aarch64" ] ||
+    linux-arm64 | linux-x64)
+      if [ "$(host_arch)" = "${triple#linux-}" ]; then
+        docker_build "$triple"
+      elif [ "$triple" = linux-arm64 ]; then
         die "linux-arm64 builds in Docker on an arm64 host (natively, not emulated)"
-      local lib
-      lib="$(libwebrtc_dir "$triple")"
-      [ -f "$lib/lib/libwebrtc.a" ] ||
-        die "no libwebrtc build in $lib; run scripts/build-libwebrtc.sh $triple (on an x64 Linux host)"
-      check_libwebrtc "$triple" "$lib/.source"
-      cp "$lib/.source" "$tmp/libwebrtc-source"
-      # -P: a worktree's third_party/libwebrtc-upstream is a symlink.
-      docker build --platform linux/arm64 -f docker/linux.Dockerfile --target addon \
-        --build-context libwebrtc="$(cd -P "$lib" && pwd)" \
-        --output "type=local,dest=$tmp/out" .
-      mv "$tmp/out/wrtc.node" "$tmp/wrtc.node"
-      rmdir "$tmp/out"
-      ;;
-    linux-x64)
-      local name
-      name="libwebrtc-rs-js-prebuild-$(git rev-parse --abbrev-ref HEAD | tr -c 'A-Za-z0-9._\n-' '-')"
-      # Removed on exit, whether the build succeeds or not.
-      remote="repos/personal/$name"
-      # The check runs on the box first, to fail before building; the
-      # build's .source comes back with the binary and is checked here too.
-      # --strip-unneeded keeps the dynamic symbol table the loader needs.
-      scripts/gpubox-test.sh "$name" -- sh -c \
-        'python3 scripts/gyp-webrtc.py check && pnpm run build &&
-         strip --strip-unneeded -o build/wrtc.node build/Release/wrtc.node &&
-         cp "$WRTC_LIBWEBRTC_DIR/linux-x64-release/.source" build/libwebrtc-source'
-      scp -q "$host:$remote/build/wrtc.node" "$tmp/wrtc.node"
-      scp -q "$host:$remote/build/libwebrtc-source" "$tmp/libwebrtc-source"
-      check_libwebrtc "$triple" "$tmp/libwebrtc-source"
+      else
+        gpubox_build
+      fi
       ;;
   esac
 
@@ -135,6 +117,60 @@ build_one() {
   case "$triple" in
     linux-*) echo "prebuild: $triple needs glibc >= $(glibc_floor "$dest/wrtc.node" | sed 's/GLIBC_//')" ;;
   esac
+}
+
+# Docker's name for a Linux triple's platform (x64 is amd64 there).
+docker_platform() {
+  case "$1" in
+    linux-x64) echo linux/amd64 ;;
+    linux-arm64) echo linux/arm64 ;;
+    *) die "no Docker platform for $1" ;;
+  esac
+}
+
+host_arch() {
+  case "$(uname -m)" in
+    arm64 | aarch64) echo arm64 ;;
+    x86_64) echo x64 ;;
+    *) uname -m ;;
+  esac
+}
+
+# A Linux binary from docker/linux.Dockerfile's `addon` target, on a host of
+# the same architecture (an arm64 Mac, or a Linux CI runner), into $tmp.
+docker_build() {
+  local triple="$1" lib platform
+  platform="$(docker_platform "$triple")"
+  lib="$(libwebrtc_dir "$triple")"
+  [ -f "$lib/lib/libwebrtc.a" ] ||
+    die "no libwebrtc build in $lib; run scripts/libwebrtc-assets.sh fetch $triple, or" \
+      "scripts/build-libwebrtc.sh $triple (on an x64 Linux host)"
+  check_libwebrtc "$triple" "$lib/.source"
+  cp "$lib/.source" "$tmp/libwebrtc-source"
+  # -P: a worktree's third_party/libwebrtc-upstream is a symlink.
+  docker build --platform "$platform" -f docker/linux.Dockerfile --target addon \
+    --build-context libwebrtc="$(cd -P "$lib" && pwd)" \
+    --output "type=local,dest=$tmp/out" .
+  mv "$tmp/out/wrtc.node" "$tmp/wrtc.node"
+  rmdir "$tmp/out"
+}
+
+# linux-x64 from a host that isn't x64: built on gpubox, into $tmp.
+gpubox_build() {
+  local name
+  name="libwebrtc-rs-js-prebuild-$(git rev-parse --abbrev-ref HEAD | tr -c 'A-Za-z0-9._\n-' '-')"
+  # Removed on exit, whether the build succeeds or not.
+  remote="repos/personal/$name"
+  # The check runs on the box first, to fail before building; the
+  # build's .source comes back with the binary and is checked here too.
+  # --strip-unneeded keeps the dynamic symbol table the loader needs.
+  scripts/gpubox-test.sh "$name" -- sh -c \
+    'python3 scripts/gyp-webrtc.py check && pnpm run build &&
+     strip --strip-unneeded -o build/wrtc.node build/Release/wrtc.node &&
+     cp "$WRTC_LIBWEBRTC_DIR/linux-x64-release/.source" build/libwebrtc-source'
+  scp -q "$host:$remote/build/wrtc.node" "$tmp/wrtc.node"
+  scp -q "$host:$remote/build/libwebrtc-source" "$tmp/libwebrtc-source"
+  check_libwebrtc linux-x64 "$tmp/libwebrtc-source"
 }
 
 usage="usage: scripts/prebuild.sh $(
