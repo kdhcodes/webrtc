@@ -1,0 +1,47 @@
+{
+  "name": "@kdh.codes/webrtc",
+  "version": "0.0.0",
+  "private": true,
+  "gypfile": false,
+  "description": "WebRTC for Node.js: a native addon over libwebrtc with a spec-shaped API",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build-libwebrtc": "scripts/build-libwebrtc.sh",
+    "build": "node-gyp rebuild -j max && scripts/check-undefined.sh",
+    "build:ts": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json && tsc -p tsconfig.dom.json",
+    "gen:idl": "node scripts/gen-idl.mjs",
+    "test": "node --test --test-timeout=60000 'lib/**/*.test.ts' 'scripts/**/*.test.ts' 'test/**/*.test.ts'",
+    "spike": "node test/spike/dc-ping.mjs",
+    "lint": "biome check . && scripts/clang-format.sh --check",
+    "format": "biome check --write . && scripts/clang-format.sh",
+    "test:exit": "node scripts/check-exit.mjs",
+    "test:unit": "node --test --test-timeout=60000 'lib/**/*.test.ts'",
+    "test:interop": "node --test --test-timeout=120000 'test/interop/*.interop.ts'",
+    "wpt": "node scripts/wpt-run.mjs",
+    "wpt:update": "node scripts/wpt-run.mjs --update",
+    "wpt:wrtc": "node scripts/wpt-run.mjs --impl wrtc",
+    "bench": "tsc -p tsconfig.json && node bench/run.mjs"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.9.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@roamhq/wrtc": "^0.10.0",
+    "@types/node": "^24.19.2",
+    "@webref/idl": "^3.87.0",
+    "playwright": "^1.65.1",
+    "typescript": "^7.0.2",
+    "webidl2": "^24.5.0"
+  },
+  "packageManager": "pnpm@12.9.0"
+}

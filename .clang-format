@@ -1,0 +1,3 @@
+# libwebrtc and Chromium use this style; matching it keeps our glue code
+# consistent with the headers it calls into.
+BasedOnStyle: Chromium

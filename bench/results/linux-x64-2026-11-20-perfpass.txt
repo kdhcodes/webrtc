@@ -1,0 +1,238 @@
+# Performance pass, Linux x64 (gpubox), 2026-11-20: raw data
+
+Node v24 (gpubox toolchain), load below 1 unless noted. 'before' is 3f343f7
+(perf-pass-before), 'after' this branch (perf-pass-after). Summaries in
+bench/RESULTS.md, "After the performance pass".
+
+## bench/renegotiation-probe.mjs, 7 alternating rounds (before, after, wrtc)
+
+load at start:  09:05:52 up 1 day,  9:20,  1 user,  load average: 0.92, 0.85, 0.45
+round 1 perf-pass-before createOffer  wall 15.46 ms, cpu 15.75 ms
+round 1 perf-pass-before sldOffer     wall 23.84 ms, cpu 27.88 ms
+round 1 perf-pass-before srdOffer     wall 22.38 ms, cpu 22.32 ms
+round 1 perf-pass-before createAnswer wall 11.22 ms, cpu 11.41 ms
+round 1 perf-pass-before sldAnswer    wall 15.34 ms, cpu 15.48 ms
+round 1 perf-pass-before srdAnswer    wall 10.21 ms, cpu 10.58 ms
+round 1 perf-pass-after createOffer  wall 15.23 ms, cpu 15.42 ms
+round 1 perf-pass-after sldOffer     wall 21.42 ms, cpu 21.68 ms
+round 1 perf-pass-after srdOffer     wall 16.99 ms, cpu 16.73 ms
+round 1 perf-pass-after createAnswer wall 9.52 ms, cpu 11.21 ms
+round 1 perf-pass-after sldAnswer    wall 16.33 ms, cpu 16.25 ms
+round 1 perf-pass-after srdAnswer    wall 12.95 ms, cpu 13.46 ms
+round 1 wrtc createOffer  wall 4.57 ms, cpu 4.34 ms
+round 1 wrtc sldOffer     wall 7.03 ms, cpu 6.63 ms
+round 1 wrtc srdOffer     wall 8.01 ms, cpu 8.13 ms
+round 1 wrtc createAnswer wall 3.94 ms, cpu 3.95 ms
+round 1 wrtc sldAnswer    wall 8.05 ms, cpu 7.96 ms
+round 1 wrtc srdAnswer    wall 6.66 ms, cpu 7.78 ms
+round 1 load 0.85
+round 2 wrtc createOffer  wall 4.46 ms, cpu 4.32 ms
+round 2 wrtc sldOffer     wall 6.49 ms, cpu 6.41 ms
+round 2 wrtc srdOffer     wall 8.02 ms, cpu 8.20 ms
+round 2 wrtc createAnswer wall 3.76 ms, cpu 3.90 ms
+round 2 wrtc sldAnswer    wall 7.79 ms, cpu 7.81 ms
+round 2 wrtc srdAnswer    wall 7.21 ms, cpu 7.86 ms
+round 2 perf-pass-after createOffer  wall 15.15 ms, cpu 15.53 ms
+round 2 perf-pass-after sldOffer     wall 23.23 ms, cpu 23.67 ms
+round 2 perf-pass-after srdOffer     wall 18.42 ms, cpu 18.48 ms
+round 2 perf-pass-after createAnswer wall 11.56 ms, cpu 11.87 ms
+round 2 perf-pass-after sldAnswer    wall 24.73 ms, cpu 25.42 ms
+round 2 perf-pass-after srdAnswer    wall 23.16 ms, cpu 24.24 ms
+round 2 perf-pass-before createOffer  wall 15.42 ms, cpu 16.51 ms
+round 2 perf-pass-before sldOffer     wall 19.36 ms, cpu 20.85 ms
+round 2 perf-pass-before srdOffer     wall 17.82 ms, cpu 17.82 ms
+round 2 perf-pass-before createAnswer wall 9.19 ms, cpu 11.17 ms
+round 2 perf-pass-before sldAnswer    wall 10.80 ms, cpu 10.62 ms
+round 2 perf-pass-before srdAnswer    wall 8.96 ms, cpu 10.49 ms
+round 2 load 0.78
+round 3 perf-pass-before createOffer  wall 15.35 ms, cpu 15.69 ms
+round 3 perf-pass-before sldOffer     wall 26.53 ms, cpu 26.76 ms
+round 3 perf-pass-before srdOffer     wall 19.89 ms, cpu 19.24 ms
+round 3 perf-pass-before createAnswer wall 11.37 ms, cpu 11.57 ms
+round 3 perf-pass-before sldAnswer    wall 18.43 ms, cpu 19.02 ms
+round 3 perf-pass-before srdAnswer    wall 16.98 ms, cpu 20.03 ms
+round 3 perf-pass-after createOffer  wall 15.59 ms, cpu 16.04 ms
+round 3 perf-pass-after sldOffer     wall 26.09 ms, cpu 25.99 ms
+round 3 perf-pass-after srdOffer     wall 22.01 ms, cpu 21.60 ms
+round 3 perf-pass-after createAnswer wall 13.93 ms, cpu 14.29 ms
+round 3 perf-pass-after sldAnswer    wall 25.54 ms, cpu 26.10 ms
+round 3 perf-pass-after srdAnswer    wall 15.77 ms, cpu 20.41 ms
+round 3 wrtc createOffer  wall 4.99 ms, cpu 5.21 ms
+round 3 wrtc sldOffer     wall 5.95 ms, cpu 6.57 ms
+round 3 wrtc srdOffer     wall 6.97 ms, cpu 8.10 ms
+round 3 wrtc createAnswer wall 3.59 ms, cpu 3.90 ms
+round 3 wrtc sldAnswer    wall 7.17 ms, cpu 7.86 ms
+round 3 wrtc srdAnswer    wall 6.90 ms, cpu 7.53 ms
+round 3 load 0.88
+round 4 wrtc createOffer  wall 4.93 ms, cpu 4.95 ms
+round 4 wrtc sldOffer     wall 6.40 ms, cpu 6.59 ms
+round 4 wrtc srdOffer     wall 7.48 ms, cpu 7.98 ms
+round 4 wrtc createAnswer wall 3.74 ms, cpu 4.09 ms
+round 4 wrtc sldAnswer    wall 8.75 ms, cpu 8.71 ms
+round 4 wrtc srdAnswer    wall 7.06 ms, cpu 7.40 ms
+round 4 perf-pass-after createOffer  wall 15.71 ms, cpu 16.15 ms
+round 4 perf-pass-after sldOffer     wall 24.51 ms, cpu 24.70 ms
+round 4 perf-pass-after srdOffer     wall 21.92 ms, cpu 21.14 ms
+round 4 perf-pass-after createAnswer wall 11.90 ms, cpu 12.01 ms
+round 4 perf-pass-after sldAnswer    wall 15.61 ms, cpu 15.52 ms
+round 4 perf-pass-after srdAnswer    wall 10.68 ms, cpu 10.90 ms
+round 4 perf-pass-before createOffer  wall 15.27 ms, cpu 15.59 ms
+round 4 perf-pass-before sldOffer     wall 23.13 ms, cpu 24.38 ms
+round 4 perf-pass-before srdOffer     wall 20.97 ms, cpu 20.97 ms
+round 4 perf-pass-before createAnswer wall 11.50 ms, cpu 11.82 ms
+round 4 perf-pass-before sldAnswer    wall 27.57 ms, cpu 27.94 ms
+round 4 perf-pass-before srdAnswer    wall 25.91 ms, cpu 26.90 ms
+round 4 load 0.82
+round 5 perf-pass-before createOffer  wall 15.51 ms, cpu 15.84 ms
+round 5 perf-pass-before sldOffer     wall 18.81 ms, cpu 20.45 ms
+round 5 perf-pass-before srdOffer     wall 18.15 ms, cpu 17.96 ms
+round 5 perf-pass-before createAnswer wall 9.46 ms, cpu 10.01 ms
+round 5 perf-pass-before sldAnswer    wall 22.66 ms, cpu 23.50 ms
+round 5 perf-pass-before srdAnswer    wall 19.78 ms, cpu 20.80 ms
+round 5 perf-pass-after createOffer  wall 14.75 ms, cpu 15.82 ms
+round 5 perf-pass-after sldOffer     wall 20.97 ms, cpu 21.89 ms
+round 5 perf-pass-after srdOffer     wall 18.54 ms, cpu 18.30 ms
+round 5 perf-pass-after createAnswer wall 13.49 ms, cpu 13.78 ms
+round 5 perf-pass-after sldAnswer    wall 21.37 ms, cpu 21.94 ms
+round 5 perf-pass-after srdAnswer    wall 19.10 ms, cpu 19.70 ms
+round 5 wrtc createOffer  wall 4.55 ms, cpu 4.35 ms
+round 5 wrtc sldOffer     wall 6.56 ms, cpu 6.52 ms
+round 5 wrtc srdOffer     wall 7.78 ms, cpu 8.13 ms
+round 5 wrtc createAnswer wall 3.62 ms, cpu 3.67 ms
+round 5 wrtc sldAnswer    wall 7.24 ms, cpu 7.39 ms
+round 5 wrtc srdAnswer    wall 6.98 ms, cpu 7.47 ms
+round 5 load 0.76
+round 6 wrtc createOffer  wall 5.05 ms, cpu 5.19 ms
+round 6 wrtc sldOffer     wall 6.98 ms, cpu 6.92 ms
+round 6 wrtc srdOffer     wall 7.52 ms, cpu 7.78 ms
+round 6 wrtc createAnswer wall 3.87 ms, cpu 4.07 ms
+round 6 wrtc sldAnswer    wall 7.78 ms, cpu 7.95 ms
+round 6 wrtc srdAnswer    wall 6.75 ms, cpu 7.20 ms
+round 6 perf-pass-after createOffer  wall 14.62 ms, cpu 15.54 ms
+round 6 perf-pass-after sldOffer     wall 17.50 ms, cpu 19.29 ms
+round 6 perf-pass-after srdOffer     wall 16.89 ms, cpu 16.41 ms
+round 6 perf-pass-after createAnswer wall 10.90 ms, cpu 11.37 ms
+round 6 perf-pass-after sldAnswer    wall 19.87 ms, cpu 21.20 ms
+round 6 perf-pass-after srdAnswer    wall 14.19 ms, cpu 14.93 ms
+round 6 perf-pass-before createOffer  wall 15.26 ms, cpu 15.60 ms
+round 6 perf-pass-before sldOffer     wall 18.37 ms, cpu 20.09 ms
+round 6 perf-pass-before srdOffer     wall 17.82 ms, cpu 17.71 ms
+round 6 perf-pass-before createAnswer wall 10.72 ms, cpu 10.91 ms
+round 6 perf-pass-before sldAnswer    wall 22.35 ms, cpu 23.23 ms
+round 6 perf-pass-before srdAnswer    wall 20.84 ms, cpu 21.19 ms
+round 6 load 0.70
+round 7 perf-pass-before createOffer  wall 15.46 ms, cpu 15.99 ms
+round 7 perf-pass-before sldOffer     wall 26.74 ms, cpu 27.01 ms
+round 7 perf-pass-before srdOffer     wall 18.12 ms, cpu 17.83 ms
+round 7 perf-pass-before createAnswer wall 11.00 ms, cpu 11.37 ms
+round 7 perf-pass-before sldAnswer    wall 22.95 ms, cpu 23.58 ms
+round 7 perf-pass-before srdAnswer    wall 18.77 ms, cpu 18.61 ms
+round 7 perf-pass-after createOffer  wall 15.48 ms, cpu 15.74 ms
+round 7 perf-pass-after sldOffer     wall 23.43 ms, cpu 23.86 ms
+round 7 perf-pass-after srdOffer     wall 18.25 ms, cpu 18.43 ms
+round 7 perf-pass-after createAnswer wall 11.94 ms, cpu 12.17 ms
+round 7 perf-pass-after sldAnswer    wall 23.23 ms, cpu 23.41 ms
+round 7 perf-pass-after srdAnswer    wall 18.78 ms, cpu 22.72 ms
+round 7 wrtc createOffer  wall 4.59 ms, cpu 4.49 ms
+round 7 wrtc sldOffer     wall 6.83 ms, cpu 6.89 ms
+round 7 wrtc srdOffer     wall 7.53 ms, cpu 8.25 ms
+round 7 wrtc createAnswer wall 4.40 ms, cpu 4.85 ms
+round 7 wrtc sldAnswer    wall 7.55 ms, cpu 8.25 ms
+round 7 wrtc srdAnswer    wall 6.91 ms, cpu 7.72 ms
+round 7 load 0.66
+
+## Steady-state renegotiation, scratch version of bench/codec-probe.mjs (7 rounds: wrtc, before, after all, after vp8,vp9,av1)
+
+ 09:09:28 up 1 day,  9:24,  1 user,  load average: 0.98, 0.92, 0.56
+wrtc{"families":"all","videoPayloadTypes":11,"sdpBytes":21312,"wallMs":9.692384000000061,"cpuMs":9.279}
+{"families":"all","videoPayloadTypes":23,"sdpBytes":33566,"wallMs":39.94702599999982,"cpuMs":38.91}
+{"families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20205,"wallMs":27.91494399999999,"cpuMs":28.13}
+before{"families":"all","videoPayloadTypes":23,"sdpBytes":33572,"wallMs":42.943370999999956,"cpuMs":42.666}
+wrtc{"families":"all","videoPayloadTypes":11,"sdpBytes":21306,"wallMs":10.734980999999948,"cpuMs":10.732}
+{"families":"all","videoPayloadTypes":23,"sdpBytes":33557,"wallMs":41.00091000000009,"cpuMs":40.353}
+{"families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20208,"wallMs":24.327425000000062,"cpuMs":25.164}
+before{"families":"all","videoPayloadTypes":23,"sdpBytes":33557,"wallMs":48.542883000000074,"cpuMs":55.44}
+wrtc{"families":"all","videoPayloadTypes":11,"sdpBytes":21315,"wallMs":19.07758899999999,"cpuMs":18.791}
+{"families":"all","videoPayloadTypes":23,"sdpBytes":33562,"wallMs":41.02531499999998,"cpuMs":40.212}
+{"families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20213,"wallMs":25.620439000000033,"cpuMs":25.681}
+before{"families":"all","videoPayloadTypes":23,"sdpBytes":33557,"wallMs":43.27787699999999,"cpuMs":43.407}
+wrtc{"families":"all","videoPayloadTypes":11,"sdpBytes":21312,"wallMs":39.465455000000134,"cpuMs":39.66}
+{"families":"all","videoPayloadTypes":23,"sdpBytes":33558,"wallMs":66.82633100000021,"cpuMs":78.567}
+{"families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20219,"wallMs":26.046784000000002,"cpuMs":26.123}
+before{"families":"all","videoPayloadTypes":23,"sdpBytes":33561,"wallMs":46.57473600000003,"cpuMs":54.009}
+wrtc{"families":"all","videoPayloadTypes":11,"sdpBytes":21315,"wallMs":38.84943099999998,"cpuMs":39.37}
+{"families":"all","videoPayloadTypes":23,"sdpBytes":33561,"wallMs":61.52462400000002,"cpuMs":61.776}
+{"families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20216,"wallMs":26.940106000000014,"cpuMs":26.195}
+before{"families":"all","videoPayloadTypes":23,"sdpBytes":33566,"wallMs":47.69985099999997,"cpuMs":46.186}
+wrtc{"families":"all","videoPayloadTypes":11,"sdpBytes":21297,"wallMs":15.924255999999957,"cpuMs":15.815}
+{"families":"all","videoPayloadTypes":23,"sdpBytes":33558,"wallMs":52.00912900000003,"cpuMs":57.77}
+{"families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20216,"wallMs":25.334708999999975,"cpuMs":26.109}
+before{"families":"all","videoPayloadTypes":23,"sdpBytes":33557,"wallMs":44.075636999999915,"cpuMs":43.564}
+wrtc{"families":"all","videoPayloadTypes":11,"sdpBytes":21312,"wallMs":11.421718000000055,"cpuMs":11.328}
+{"families":"all","videoPayloadTypes":23,"sdpBytes":33555,"wallMs":39.109464,"cpuMs":38.43}
+{"families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20228,"wallMs":26.67429100000004,"cpuMs":26.455}
+before{"families":"all","videoPayloadTypes":23,"sdpBytes":33566,"wallMs":57.36443700000018,"cpuMs":56.793}
+ 09:10:02 up 1 day,  9:25,  1 user,  load average: 0.87, 0.90, 0.57
+
+## Steady-state renegotiation, committed bench/codec-probe.mjs (after, 5 rounds)
+
+ 10:16:42 up 1 day, 10:31,  1 user,  load average: 0.69, 0.80, 0.64
+{"impl":"wrtc","families":"all","videoPayloadTypes":11,"sdpBytes":21317,"wallMs":12.92,"cpuMs":13.7,"jsThreadMs":4.58,"stepMs":{"createOffer":2.3,"sldOffer":2.88,"srdOffer":2.79,"createAnswer":2.17,"sldAnswer":1.87,"srdAnswer":1.93}}
+{"impl":"ours","families":"all","videoPayloadTypes":23,"sdpBytes":33563,"wallMs":46.1,"cpuMs":45.05,"jsThreadMs":14.13,"stepMs":{"createOffer":5.19,"sldOffer":9.25,"srdOffer":6.07,"createAnswer":5.21,"sldAnswer":10.05,"srdAnswer":9.77}}
+{"impl":"ours","families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20219,"wallMs":25.24,"cpuMs":24.61,"jsThreadMs":5.1,"stepMs":{"createOffer":2.95,"sldOffer":5.1,"srdOffer":3.19,"createAnswer":3.43,"sldAnswer":5.2,"srdAnswer":5.45}}
+{"impl":"wrtc","families":"all","videoPayloadTypes":11,"sdpBytes":21315,"wallMs":10.53,"cpuMs":11.16,"jsThreadMs":4.22,"stepMs":{"createOffer":1.62,"sldOffer":2.11,"srdOffer":1.89,"createAnswer":1.35,"sldAnswer":1.82,"srdAnswer":1.55}}
+{"impl":"ours","families":"all","videoPayloadTypes":23,"sdpBytes":33555,"wallMs":38.89,"cpuMs":39.27,"jsThreadMs":12.68,"stepMs":{"createOffer":4.67,"sldOffer":8.12,"srdOffer":5.27,"createAnswer":4.41,"sldAnswer":8.84,"srdAnswer":8.18}}
+{"impl":"ours","families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20219,"wallMs":25.58,"cpuMs":25.5,"jsThreadMs":4.93,"stepMs":{"createOffer":3.07,"sldOffer":5.23,"srdOffer":2.95,"createAnswer":3.52,"sldAnswer":5.44,"srdAnswer":5.32}}
+{"impl":"wrtc","families":"all","videoPayloadTypes":11,"sdpBytes":21315,"wallMs":10.43,"cpuMs":10.17,"jsThreadMs":3.43,"stepMs":{"createOffer":1.73,"sldOffer":2.42,"srdOffer":1.7,"createAnswer":1.25,"sldAnswer":1.89,"srdAnswer":1.7}}
+{"impl":"ours","families":"all","videoPayloadTypes":23,"sdpBytes":33569,"wallMs":40.54,"cpuMs":39.85,"jsThreadMs":11.96,"stepMs":{"createOffer":4.36,"sldOffer":8.33,"srdOffer":5.66,"createAnswer":4.39,"sldAnswer":8.93,"srdAnswer":8.84}}
+{"impl":"ours","families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20211,"wallMs":25.49,"cpuMs":24.71,"jsThreadMs":5.41,"stepMs":{"createOffer":2.97,"sldOffer":5.12,"srdOffer":2.95,"createAnswer":3.39,"sldAnswer":5.51,"srdAnswer":5.38}}
+{"impl":"wrtc","families":"all","videoPayloadTypes":11,"sdpBytes":21318,"wallMs":10.24,"cpuMs":10.19,"jsThreadMs":3.41,"stepMs":{"createOffer":1.73,"sldOffer":2.29,"srdOffer":1.67,"createAnswer":1.17,"sldAnswer":1.73,"srdAnswer":1.75}}
+{"impl":"ours","families":"all","videoPayloadTypes":23,"sdpBytes":33558,"wallMs":42.16,"cpuMs":42.53,"jsThreadMs":13.95,"stepMs":{"createOffer":4.9,"sldOffer":8.69,"srdOffer":5.71,"createAnswer":4.91,"sldAnswer":9.07,"srdAnswer":8.7}}
+{"impl":"ours","families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20222,"wallMs":25.53,"cpuMs":24.08,"jsThreadMs":5.15,"stepMs":{"createOffer":2.97,"sldOffer":5.25,"srdOffer":3.03,"createAnswer":3.42,"sldAnswer":5.5,"srdAnswer":5.41}}
+{"impl":"wrtc","families":"all","videoPayloadTypes":11,"sdpBytes":21303,"wallMs":10.29,"cpuMs":10.19,"jsThreadMs":3.88,"stepMs":{"createOffer":1.13,"sldOffer":2.16,"srdOffer":2.07,"createAnswer":1.12,"sldAnswer":1.79,"srdAnswer":1.7}}
+{"impl":"ours","families":"all","videoPayloadTypes":23,"sdpBytes":33563,"wallMs":41.88,"cpuMs":40.98,"jsThreadMs":12.56,"stepMs":{"createOffer":4.41,"sldOffer":8.58,"srdOffer":6,"createAnswer":4.44,"sldAnswer":9.26,"srdAnswer":9.08}}
+{"impl":"ours","families":"vp8,vp9,av1","videoPayloadTypes":11,"sdpBytes":20222,"wallMs":26.47,"cpuMs":25.86,"jsThreadMs":6.19,"stepMs":{"createOffer":2.99,"sldOffer":5.5,"srdOffer":3.13,"createAnswer":3.44,"sldAnswer":5.55,"srdAnswer":5.66}}
+ 10:17:01 up 1 day, 10:32,  1 user,  load average: 0.72, 0.80, 0.64
+
+## Import time (await import('dist/index.js'), ms; 9 alternating rounds)
+
+Final run, 9 alternating rounds (only the summaries were kept):
+  before median 42.0 [41.1-43.2]; after 26.9 [26.3-30.9]; wrtc 8.6 [8.4-9.3]
+  paired after/before 0.64 [0.63-0.74]
+An earlier 7-round run after only the node:crypto/node:util change:
+  before 42.8 42.2 42.4 42.0 42.5 42.8 42.9; after 31.0 35.2 30.5 30.4 30.9 30.4 30.5
+Earlier diagnostic runs (before only):
+  addon require 1.0 ms; generated idl.js 2.8 ms; ours 42.2 ms
+  preloading node:crypto + node:util: 30.6 ms; node:crypto alone: 32.9 ms;
+  node:util alone: 38.1 ms; node:path (control): 40.2 ms
+  after the crypto/util change, preloading the remaining builtins: 27.6 vs 31.4 ms
+
+## Sink retention after a JS stall (review's retention.mjs, 1280x720, guarded)
+
+== H264
+{"checkout":"perf-pass-before","block":5,"rssBeforeMB":159,"rssAfterMB":269,"deltaMB":110,"framesInFirstSecAfterBlock":141,"sizes":{"1280x720":418},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=338208
+{"checkout":"perf-pass-after","block":5,"rssBeforeMB":150,"rssAfterMB":294,"deltaMB":144,"framesInFirstSecAfterBlock":142,"sizes":{"1280x720":419},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=369968
+{"checkout":"perf-pass-before","block":5,"rssBeforeMB":158,"rssAfterMB":266,"deltaMB":108,"framesInFirstSecAfterBlock":141,"sizes":{"1280x720":417},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=341332
+{"checkout":"perf-pass-after","block":5,"rssBeforeMB":148,"rssAfterMB":297,"deltaMB":149,"framesInFirstSecAfterBlock":140,"sizes":{"1280x720":416},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=366044
+== VP8
+{"checkout":"perf-pass-before","block":5,"rssBeforeMB":197,"rssAfterMB":326,"deltaMB":129,"framesInFirstSecAfterBlock":182,"sizes":{"1280x720":560},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=473748
+{"checkout":"perf-pass-after","block":5,"rssBeforeMB":192,"rssAfterMB":330,"deltaMB":138,"framesInFirstSecAfterBlock":181,"sizes":{"1280x720":559},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=477424
+{"checkout":"perf-pass-before","block":5,"rssBeforeMB":191,"rssAfterMB":320,"deltaMB":129,"framesInFirstSecAfterBlock":181,"sizes":{"1280x720":560},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=467044
+{"checkout":"perf-pass-after","block":5,"rssBeforeMB":191,"rssAfterMB":388,"deltaMB":197,"framesInFirstSecAfterBlock":181,"sizes":{"1280x720":558},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=457768
+{"checkout":"perf-pass-before","block":15,"rssBeforeMB":159,"rssAfterMB":661,"deltaMB":502,"framesInFirstSecAfterBlock":439,"sizes":{"1280x720":716},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=748544
+{"checkout":"perf-pass-after","block":15,"rssBeforeMB":154,"rssAfterMB":668,"deltaMB":514,"framesInFirstSecAfterBlock":440,"sizes":{"1280x720":717},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=752180
+{"checkout":"perf-pass-before","block":15,"rssBeforeMB":160,"rssAfterMB":599,"deltaMB":439,"framesInFirstSecAfterBlock":441,"sizes":{"1280x720":717},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=784976
+{"checkout":"perf-pass-after","block":15,"rssBeforeMB":155,"rssAfterMB":700,"deltaMB":545,"framesInFirstSecAfterBlock":441,"sizes":{"1280x720":719},"codec":["video/H264"]}
+GUARD: exit=0 peak_rss_kb=790312
+

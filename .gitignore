@@ -1,0 +1,11 @@
+.devenv/
+.direnv/
+node_modules/
+build/
+third_party/libwebrtc
+third_party/libwebrtc-upstream
+dist/
+.claude/worktrees/
+artifacts/
+.DS_Store
+test/wpt/out/

@@ -1,0 +1,16 @@
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index e9668ca..8366e16 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -660,7 +660,10 @@ config("compiler") {
+     # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
+     # It also causes segfault on Linux s390x:
+     # https://github.com/llvm/llvm-project/issues/149511
+-    if (is_linux && use_lld && current_cpu != "arm" && current_cpu != "s390x") {
++    # libwebrtc-rs-js: no CREL. The addon links libwebrtc.a with the system
++    # linker, and GNU ld (2.42 on Ubuntu 24.04) can't read CREL relocations
++    # ("no .eh_frame_hdr table", "unknown architecture of input file").
++    if (false) {
+       cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
+     }
+   }

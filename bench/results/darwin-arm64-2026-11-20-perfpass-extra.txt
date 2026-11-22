@@ -1,0 +1,203 @@
+# Performance pass, macOS arm64 (M3 Pro), 2026-11-20: raw data besides the bench tables
+
+'before' is 3f343f7, 'after' this branch. Summaries in bench/RESULTS.md.
+
+## bench/renegotiation-probe.mjs, 7 alternating rounds (before, after, wrtc), load ~3
+
+load at start:  09:31:06  up 41 days 21:14,  7 users,  load average: 3.24, 3.33, 4.02
+round 1 perf-pass-before createOffer  wall 1.30 ms, cpu 1.34 ms
+round 1 perf-pass-before sldOffer     wall 2.12 ms, cpu 2.59 ms
+round 1 perf-pass-before srdOffer     wall 1.88 ms, cpu 2.10 ms
+round 1 perf-pass-before createAnswer wall 0.85 ms, cpu 0.95 ms
+round 1 perf-pass-before sldAnswer    wall 2.11 ms, cpu 2.37 ms
+round 1 perf-pass-before srdAnswer    wall 1.89 ms, cpu 2.19 ms
+round 1 perf-pass-after createOffer  wall 2.20 ms, cpu 2.31 ms
+round 1 perf-pass-after sldOffer     wall 3.29 ms, cpu 3.65 ms
+round 1 perf-pass-after srdOffer     wall 3.27 ms, cpu 3.69 ms
+round 1 perf-pass-after createAnswer wall 1.32 ms, cpu 1.34 ms
+round 1 perf-pass-after sldAnswer    wall 2.50 ms, cpu 2.81 ms
+round 1 perf-pass-after srdAnswer    wall 2.22 ms, cpu 2.50 ms
+round 1 wrtc createOffer  wall 2.36 ms, cpu 2.67 ms
+round 1 wrtc sldOffer     wall 2.77 ms, cpu 3.00 ms
+round 1 wrtc srdOffer     wall 3.18 ms, cpu 3.33 ms
+round 1 wrtc createAnswer wall 1.94 ms, cpu 2.00 ms
+round 1 wrtc sldAnswer    wall 1.81 ms, cpu 1.95 ms
+round 1 wrtc srdAnswer    wall 2.04 ms, cpu 2.53 ms
+round 1 load { 3.30 3.34 4.02 }
+round 2 wrtc createOffer  wall 1.13 ms, cpu 1.32 ms
+round 2 wrtc sldOffer     wall 1.98 ms, cpu 2.10 ms
+round 2 wrtc srdOffer     wall 2.35 ms, cpu 2.47 ms
+round 2 wrtc createAnswer wall 0.80 ms, cpu 0.83 ms
+round 2 wrtc sldAnswer    wall 1.70 ms, cpu 1.91 ms
+round 2 wrtc srdAnswer    wall 1.41 ms, cpu 1.72 ms
+round 2 perf-pass-after createOffer  wall 1.31 ms, cpu 1.53 ms
+round 2 perf-pass-after sldOffer     wall 3.63 ms, cpu 4.40 ms
+round 2 perf-pass-after srdOffer     wall 3.11 ms, cpu 3.73 ms
+round 2 perf-pass-after createAnswer wall 1.68 ms, cpu 1.95 ms
+round 2 perf-pass-after sldAnswer    wall 2.99 ms, cpu 3.23 ms
+round 2 perf-pass-after srdAnswer    wall 2.52 ms, cpu 2.79 ms
+round 2 perf-pass-before createOffer  wall 1.46 ms, cpu 1.55 ms
+round 2 perf-pass-before sldOffer     wall 4.08 ms, cpu 4.52 ms
+round 2 perf-pass-before srdOffer     wall 2.52 ms, cpu 3.97 ms
+round 2 perf-pass-before createAnswer wall 1.01 ms, cpu 1.45 ms
+round 2 perf-pass-before sldAnswer    wall 2.72 ms, cpu 3.59 ms
+round 2 perf-pass-before srdAnswer    wall 2.08 ms, cpu 3.41 ms
+round 2 load { 3.28 3.33 4.02 }
+round 3 perf-pass-before createOffer  wall 4.50 ms, cpu 5.44 ms
+round 3 perf-pass-before sldOffer     wall 6.24 ms, cpu 6.96 ms
+round 3 perf-pass-before srdOffer     wall 4.18 ms, cpu 4.60 ms
+round 3 perf-pass-before createAnswer wall 1.47 ms, cpu 1.51 ms
+round 3 perf-pass-before sldAnswer    wall 3.22 ms, cpu 3.58 ms
+round 3 perf-pass-before srdAnswer    wall 3.41 ms, cpu 3.77 ms
+round 3 perf-pass-after createOffer  wall 2.86 ms, cpu 2.96 ms
+round 3 perf-pass-after sldOffer     wall 4.48 ms, cpu 4.82 ms
+round 3 perf-pass-after srdOffer     wall 3.37 ms, cpu 4.02 ms
+round 3 perf-pass-after createAnswer wall 1.48 ms, cpu 1.51 ms
+round 3 perf-pass-after sldAnswer    wall 2.89 ms, cpu 3.17 ms
+round 3 perf-pass-after srdAnswer    wall 3.06 ms, cpu 3.49 ms
+round 3 wrtc createOffer  wall 1.45 ms, cpu 1.52 ms
+round 3 wrtc sldOffer     wall 1.96 ms, cpu 2.08 ms
+round 3 wrtc srdOffer     wall 1.64 ms, cpu 1.72 ms
+round 3 wrtc createAnswer wall 0.91 ms, cpu 0.94 ms
+round 3 wrtc sldAnswer    wall 1.52 ms, cpu 1.62 ms
+round 3 wrtc srdAnswer    wall 1.26 ms, cpu 1.53 ms
+round 3 load { 3.18 3.31 4.01 }
+round 4 wrtc createOffer  wall 1.39 ms, cpu 1.51 ms
+round 4 wrtc sldOffer     wall 2.02 ms, cpu 2.23 ms
+round 4 wrtc srdOffer     wall 1.59 ms, cpu 1.67 ms
+round 4 wrtc createAnswer wall 1.04 ms, cpu 1.07 ms
+round 4 wrtc sldAnswer    wall 1.41 ms, cpu 1.50 ms
+round 4 wrtc srdAnswer    wall 1.47 ms, cpu 1.83 ms
+round 4 perf-pass-after createOffer  wall 3.90 ms, cpu 4.39 ms
+round 4 perf-pass-after sldOffer     wall 5.61 ms, cpu 6.01 ms
+round 4 perf-pass-after srdOffer     wall 3.47 ms, cpu 4.01 ms
+round 4 perf-pass-after createAnswer wall 1.76 ms, cpu 1.81 ms
+round 4 perf-pass-after sldAnswer    wall 3.29 ms, cpu 3.61 ms
+round 4 perf-pass-after srdAnswer    wall 2.85 ms, cpu 3.51 ms
+round 4 perf-pass-before createOffer  wall 5.19 ms, cpu 5.35 ms
+round 4 perf-pass-before sldOffer     wall 6.39 ms, cpu 6.83 ms
+round 4 perf-pass-before srdOffer     wall 3.90 ms, cpu 4.22 ms
+round 4 perf-pass-before createAnswer wall 1.75 ms, cpu 1.78 ms
+round 4 perf-pass-before sldAnswer    wall 4.00 ms, cpu 4.44 ms
+round 4 perf-pass-before srdAnswer    wall 3.22 ms, cpu 3.70 ms
+round 4 load { 3.08 3.29 3.99 }
+round 5 perf-pass-before createOffer  wall 2.55 ms, cpu 2.76 ms
+round 5 perf-pass-before sldOffer     wall 5.14 ms, cpu 6.19 ms
+round 5 perf-pass-before srdOffer     wall 3.71 ms, cpu 4.28 ms
+round 5 perf-pass-before createAnswer wall 1.36 ms, cpu 1.39 ms
+round 5 perf-pass-before sldAnswer    wall 3.18 ms, cpu 3.55 ms
+round 5 perf-pass-before srdAnswer    wall 3.06 ms, cpu 3.45 ms
+round 5 perf-pass-after createOffer  wall 2.12 ms, cpu 2.21 ms
+round 5 perf-pass-after sldOffer     wall 3.12 ms, cpu 3.66 ms
+round 5 perf-pass-after srdOffer     wall 2.22 ms, cpu 2.37 ms
+round 5 perf-pass-after createAnswer wall 1.19 ms, cpu 1.23 ms
+round 5 perf-pass-after sldAnswer    wall 2.64 ms, cpu 3.07 ms
+round 5 perf-pass-after srdAnswer    wall 2.34 ms, cpu 3.45 ms
+round 5 wrtc createOffer  wall 1.13 ms, cpu 1.34 ms
+round 5 wrtc sldOffer     wall 1.36 ms, cpu 1.47 ms
+round 5 wrtc srdOffer     wall 1.29 ms, cpu 1.36 ms
+round 5 wrtc createAnswer wall 0.81 ms, cpu 0.83 ms
+round 5 wrtc sldAnswer    wall 1.40 ms, cpu 1.47 ms
+round 5 wrtc srdAnswer    wall 1.30 ms, cpu 1.62 ms
+round 5 load { 3.32 3.34 4.01 }
+round 6 wrtc createOffer  wall 2.23 ms, cpu 2.48 ms
+round 6 wrtc sldOffer     wall 3.32 ms, cpu 3.63 ms
+round 6 wrtc srdOffer     wall 3.17 ms, cpu 3.44 ms
+round 6 wrtc createAnswer wall 1.78 ms, cpu 1.86 ms
+round 6 wrtc sldAnswer    wall 1.90 ms, cpu 2.21 ms
+round 6 wrtc srdAnswer    wall 1.85 ms, cpu 2.43 ms
+round 6 perf-pass-after createOffer  wall 3.03 ms, cpu 3.25 ms
+round 6 perf-pass-after sldOffer     wall 5.07 ms, cpu 5.75 ms
+round 6 perf-pass-after srdOffer     wall 4.25 ms, cpu 5.14 ms
+round 6 perf-pass-after createAnswer wall 1.72 ms, cpu 1.78 ms
+round 6 perf-pass-after sldAnswer    wall 3.51 ms, cpu 3.92 ms
+round 6 perf-pass-after srdAnswer    wall 3.30 ms, cpu 4.19 ms
+round 6 perf-pass-before createOffer  wall 2.72 ms, cpu 3.01 ms
+round 6 perf-pass-before sldOffer     wall 4.44 ms, cpu 4.77 ms
+round 6 perf-pass-before srdOffer     wall 3.73 ms, cpu 4.09 ms
+round 6 perf-pass-before createAnswer wall 1.46 ms, cpu 1.50 ms
+round 6 perf-pass-before sldAnswer    wall 3.50 ms, cpu 3.91 ms
+round 6 perf-pass-before srdAnswer    wall 3.14 ms, cpu 3.40 ms
+round 6 load { 3.05 3.28 3.98 }
+round 7 perf-pass-before createOffer  wall 1.82 ms, cpu 1.93 ms
+round 7 perf-pass-before sldOffer     wall 3.01 ms, cpu 3.54 ms
+round 7 perf-pass-before srdOffer     wall 3.29 ms, cpu 3.58 ms
+round 7 perf-pass-before createAnswer wall 0.92 ms, cpu 0.98 ms
+round 7 perf-pass-before sldAnswer    wall 3.05 ms, cpu 3.52 ms
+round 7 perf-pass-before srdAnswer    wall 2.57 ms, cpu 3.60 ms
+round 7 perf-pass-after createOffer  wall 3.24 ms, cpu 3.50 ms
+round 7 perf-pass-after sldOffer     wall 5.07 ms, cpu 6.51 ms
+round 7 perf-pass-after srdOffer     wall 3.87 ms, cpu 4.33 ms
+round 7 perf-pass-after createAnswer wall 1.44 ms, cpu 1.51 ms
+round 7 perf-pass-after sldAnswer    wall 3.75 ms, cpu 4.45 ms
+round 7 perf-pass-after srdAnswer    wall 3.54 ms, cpu 4.17 ms
+round 7 wrtc createOffer  wall 2.94 ms, cpu 3.59 ms
+round 7 wrtc sldOffer     wall 3.39 ms, cpu 3.65 ms
+round 7 wrtc srdOffer     wall 2.82 ms, cpu 3.27 ms
+round 7 wrtc createAnswer wall 1.59 ms, cpu 1.64 ms
+round 7 wrtc sldAnswer    wall 2.15 ms, cpu 2.40 ms
+round 7 wrtc srdAnswer    wall 2.04 ms, cpu 2.73 ms
+round 7 load { 3.05 3.28 3.98 }
+
+## Signaling thread, `sample` of `renegotiation-probe.mjs ours 300` (8 s)
+
+before: thread 5684 samples, waiting 5384 (busy 300); CaptureSnapshot 89; SdpSerialize 124; CreateOffer 59; CreateAnswer 60
+after:  thread 5845 samples, waiting 5603 (busy 242); CaptureSnapshot 30; SdpSerialize 59; CreateOffer 57; CreateAnswer 59
+(inclusive counts of the outermost frame; 'waiting' = __psynch_cvwait/kevent/__ulock_wait/mach_msg)
+
+## Import time, 9 alternating rounds (ms)
+
+• Running devenv:files:cleanup
+✓ Running devenv:files:cleanup in 12.7ms
+• Running devenv:enterShell
+✓ Running devenv:enterShell in 19.4ms
+{"what":"before","ms":29.423458000000004}
+{"what":"after","ms":18.819000000000003}
+{"what":"wrtc","ms":16.886416}
+{"what":"before","ms":19.916583}
+{"what":"after","ms":16.294084}
+{"what":"wrtc","ms":7.984833999999999}
+{"what":"before","ms":21.218917}
+{"what":"after","ms":15.423041}
+{"what":"wrtc","ms":7.805875}
+{"what":"before","ms":20.110875}
+{"what":"after","ms":15.18225}
+{"what":"wrtc","ms":7.8814579999999985}
+{"what":"before","ms":20.573042}
+{"what":"after","ms":15.703000000000001}
+{"what":"wrtc","ms":8.173084000000001}
+{"what":"before","ms":20.759541999999996}
+{"what":"after","ms":15.250624999999998}
+{"what":"wrtc","ms":8.023207999999999}
+{"what":"before","ms":20.341208}
+{"what":"after","ms":15.957291999999999}
+{"what":"wrtc","ms":7.872958000000001}
+{"what":"before","ms":20.276542000000003}
+{"what":"after","ms":15.586833999999998}
+{"what":"wrtc","ms":7.963541000000001}
+{"what":"before","ms":20.278}
+{"what":"after","ms":15.297082999999999}
+{"what":"wrtc","ms":8.000833}
+
+## Allocate + fill a frame-sized buffer (us per frame): new ArrayBuffer (zeroed) vs Buffer.allocUnsafeSlow
+
+macOS  460800 B: zeroed 14.7 11.8 11.8; uninit 9.4 8.3 8.3
+macOS 1382400 B: zeroed 45.9 50.8 47.6; uninit 25.6 30.2 29.0
+gpubox 460800 B: zeroed 77.7 51.7 51.5; uninit 46.6 46.8 46.5
+gpubox 1382400 B: zeroed 199.8 166.8 164.3; uninit 142.1 145.0 144.8
+
+## Sink retention after a 5 s JS stall (review's retention.mjs, VP8 1280x720, guarded; 'baseline' = 3f343f7, the other = this branch with kMaxHeldFrames)
+
+{"checkout":"baseline","block":5,"rssBeforeMB":211,"rssAfterMB":339,"deltaMB":128,"framesInFirstSecAfterBlock":177,"sizes":{"1280x720":549},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=408624
+{"checkout":"agent-abd473b152d3cc28f","block":5,"rssBeforeMB":206,"rssAfterMB":342,"deltaMB":136,"framesInFirstSecAfterBlock":177,"sizes":{"1280x720":549},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=406896
+{"checkout":"baseline","block":5,"rssBeforeMB":216,"rssAfterMB":342,"deltaMB":126,"framesInFirstSecAfterBlock":177,"sizes":{"1280x720":551},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=412544
+{"checkout":"agent-abd473b152d3cc28f","block":5,"rssBeforeMB":210,"rssAfterMB":348,"deltaMB":138,"framesInFirstSecAfterBlock":177,"sizes":{"1280x720":551},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=417504
+{"checkout":"baseline","block":5,"rssBeforeMB":216,"rssAfterMB":345,"deltaMB":129,"framesInFirstSecAfterBlock":177,"sizes":{"1280x720":552},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=415056
+{"checkout":"agent-abd473b152d3cc28f","block":5,"rssBeforeMB":205,"rssAfterMB":338,"deltaMB":133,"framesInFirstSecAfterBlock":177,"sizes":{"1280x720":550},"codec":["video/VP8"]}
+GUARD: exit=0 peak_rss_kb=406752
+

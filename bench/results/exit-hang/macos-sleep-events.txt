@@ -1,0 +1,14 @@
+2026-11-19 20:40:07 +0000 Sleep 	Entering Sleep state due to 'Idle Sleep':TCPKeepAlive=active Using Batt (Charge:100%) 523 secs 
+2026-11-19 20:40:09 +0000 Wake Requests 	[process=dasd request=SleepService deltaSecs=1046 wakeAt=2026-11-19 20:57:35 info="com.apple.dasd:501:com.apple.intelli
+2026-11-19 20:48:50 +0000 DarkWake 	DarkWake from Deep Idle [CDNP] : due to NUB.SPMI0.SW3.IRQ nub-spmi0.0x02 rtc/Maintenance Using BATT (Charge:100%) 16 secs 
+2026-11-19 20:49:06 +0000 Sleep 	Entering Sleep state due to 'Maintenance Sleep':TCPKeepAlive=active Using Batt (Charge:100%) 1043 secs 
+2026-11-19 20:49:07 +0000 Wake Requests 	[*process=dasd request=SleepService deltaSecs=1041 wakeAt=2026-11-19 21:06:29 info="com.apple.dasd:501:com.apple.intell
+2026-11-19 21:06:29 +0000 DarkWake 	DarkWake from Deep Idle [CDNP] : due to NUB.SPMI0.SW3.IRQ nub-spmi0.0x02 rtc/SleepService Using BATT (Charge:100%) 180 secs 
+2026-11-19 21:09:29 +0000 Sleep 	Entering Sleep state due to 'Sleep Service Back to Sleep':TCPKeepAlive=active Using Batt (Charge:100%) 661 secs 
+2026-11-19 21:09:30 +0000 Wake Requests 	[*process=dasd request=SleepService deltaSecs=936 wakeAt=2026-11-19 21:25:07 info="com.apple.dasd:501:com.apple.intelli
+2026-11-19 21:56:36 +0000 Sleep 	Entering Sleep state due to 'Idle Sleep':TCPKeepAlive=active Using Batt (Charge:100%) 505 secs 
+2026-11-19 21:56:37 +0000 Wake Requests 	[process=dasd request=SleepService deltaSecs=899 wakeAt=2026-11-19 22:11:37 info="com.apple.dasd:501:com.apple.intellig
+2026-11-19 22:05:01 +0000 DarkWake 	DarkWake from Deep Idle [CDNP] : due to NUB.SPMI0.SW3.IRQ nub-spmi0.0x02 rtc/Maintenance Using BATT (Charge:100%) 
+2026-11-19 22:05:21 +0000 Sleep 	Entering Sleep state due to 'Maintenance Sleep':TCPKeepAlive=active Using Batt (Charge:100%) 605 secs 
+2026-11-19 22:05:22 +0000 Wake Requests 	[*process=dasd request=SleepService deltaSecs=916 wakeAt=2026-11-19 22:20:39 info="com.apple.dasd:501:com.apple.intelli
+2026-11-19 22:15:26 +0000 Wake 	Wake from Deep Idle [CDNVA] : due to MTP.DOCK.CHANNELS.AP0.IRQ RTP.multi-touch/HID Activity Using BATT (Charge:100%) 

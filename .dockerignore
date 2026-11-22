@@ -1,0 +1,9 @@
+.git
+.devenv
+.direnv
+build
+node_modules
+third_party/libwebrtc*
+artifacts
+dist
+.claude

@@ -1,0 +1,43 @@
+# gn args for upstream libwebrtc M150, Linux arm64 (scripts/build-libwebrtc.sh),
+# cross-compiled from an x64 Linux host with Chromium's arm64 sysroot.
+# Chromium's hermetic libc++ (std::__Cr): binding.gyp compiles against the
+# headers shipped in include/, and its objects go into libwebrtc.a. No
+# H264/H265: VP8, VP9 and AV1 (libaom encode, dav1d decode) only.
+is_debug = false
+is_component_build = false
+target_os = "linux"
+target_cpu = "arm64"
+symbol_level = 0
+enable_stripping = true
+treat_warnings_as_errors = false
+
+use_custom_libcxx = true
+use_custom_libcxx_for_host = true
+use_llvm_libatomic = false
+enable_iterator_debugging = false
+use_rtti = true
+use_clang_modules = false
+clang_use_chrome_plugins = false
+
+rtc_include_tests = false
+rtc_build_examples = false
+rtc_build_tools = false
+rtc_enable_protobuf = false
+rtc_enable_symbol_export = true
+rtc_include_internal_audio_device = true
+# We use no desktop capture and no system audio device (src/ has its own
+# playout-only one), so nothing needs X11, PipeWire or GIO. Leaving them out
+# keeps their undefined symbols out of libwebrtc.a.
+rtc_use_x11 = false
+rtc_use_pipewire = false
+# libyuv's SME (Armv9) kernels call __arm_tpidr2_save, which links to
+# libgcc_s's GCC_14.0 version: the addon then fails to load where libgcc is
+# older than GCC 14 (e.g. Debian 12, node:24-bookworm-slim).
+libyuv_use_sme = false
+
+rtc_use_h264 = false
+rtc_use_h265 = false
+proprietary_codecs = false
+rtc_libvpx_build_vp9 = true
+enable_libaom = true
+rtc_include_dav1d_in_internal_decoder_factory = true

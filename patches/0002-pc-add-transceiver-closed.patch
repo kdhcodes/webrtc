@@ -1,0 +1,56 @@
+libwebrtc-rs-js: cherry-picked from upstream WebRTC main
+96270440dc37560b2de2ee3dc82c13be610e6ace
+(https://webrtc.googlesource.com/src/+/96270440dc37560b2de2ee3dc82c13be610e6ace),
+which isn't in M150 (branch-heads/7871). Without it, addTransceiver() after
+close() builds its media channel from the Call that Close() already
+destroyed: a use-after-free, which crashed test/native/fake-native-drift.test.ts
+(SIGSEGV in WebRtcVoiceSendChannel's constructor). The upstream commit's unit
+test is left out; we don't build tests.
+
+commit 96270440dc37560b2de2ee3dc82c13be610e6ace
+Author: Tommi <tommi@webrtc.org>
+Date:   Wed Oct 21 12:12:37 2026 +0200
+
+    Fail AddTransceiver with INVALID_STATE when closed
+    
+    AddTransceiver() had no closed-state check, so after Close() the new
+    transceiver created its media channels with the already destroyed Call.
+    Return INVALID_STATE instead, as AddTrack() does and the spec requires.
+    
+    Fixed: webrtc:576148431
+    Change-Id: Ia75a4dd971825cf6ced81fa4ab89689aa7e50dbc
+    Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/510500
+    Reviewed-by: Guido Urdaneta <guidou@webrtc.org>
+    Commit-Queue: Tomas Gunnarsson <tommi@webrtc.org>
+    Auto-Submit: Tomas Gunnarsson <tommi@webrtc.org>
+    Commit-Queue: Guido Urdaneta <guidou@webrtc.org>
+    Cr-Commit-Position: refs/heads/main@{#48999}
+
+
+diff --git a/api/peer_connection_interface.h b/api/peer_connection_interface.h
+index 7e5c797aa9..2a244660ba 100644
+--- a/api/peer_connection_interface.h
++++ b/api/peer_connection_interface.h
+@@ -877,6 +877,7 @@ class RTC_EXPORT PeerConnectionInterface : public RefCountInterface {
+   //
+   // Common errors:
+   // - INTERNAL_ERROR: The configuration does not have Unified Plan enabled.
++  // - INVALID_STATE: The PeerConnection is closed.
+ 
+   // Adds a transceiver with a sender set to transmit the given track. The kind
+   // of the transceiver (and sender/receiver) will be derived from the kind of
+diff --git a/pc/peer_connection.cc b/pc/peer_connection.cc
+index e3100faa57..9498704b03 100644
+--- a/pc/peer_connection.cc
++++ b/pc/peer_connection.cc
+@@ -1041,6 +1041,10 @@ PeerConnection::AddTransceiver(MediaType media_type,
+                        ? MediaType::AUDIO
+                        : MediaType::VIDEO));
+   }
++  if (IsClosed()) {
++    return RTC_LOG_ERROR(RTCError::InvalidState()
++                         << "PeerConnection is closed.");
++  }
+ 
+   size_t num_rids = absl::c_count_if(init.send_encodings,
+                                      [](const RtpEncodingParameters& encoding) {
