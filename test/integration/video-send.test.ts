@@ -75,6 +75,8 @@ interface Outbound {
   at: number;
   codec: string | undefined;
   implementation: string | undefined;
+  /** Seconds the encoder has been held back by the bandwidth estimate. */
+  bandwidthLimited: number;
 }
 
 async function outbound(pc: RTCPeerConnection): Promise<Map<string, Outbound>> {
@@ -89,6 +91,7 @@ async function outbound(pc: RTCPeerConnection): Promise<Map<string, Outbound>> {
       at: stats.timestamp,
       codec: report.get(stats.codecId)?.mimeType,
       implementation: stats.encoderImplementation,
+      bandwidthLimited: stats.qualityLimitationDurations?.bandwidth ?? 0,
     });
   }
   return result;
@@ -153,7 +156,7 @@ async function encodedFps(
   pc: RTCPeerConnection,
   clock: ReturnType<typeof sinkOn>,
   count: number,
-): Promise<{ layers: Map<string, number>; pushed: number }> {
+): Promise<{ layers: Map<string, number>; pushed: number; bandwidthLimited: number }> {
   const before = await outbound(pc);
   const pushed = clock.log.frames;
   const started = performance.now();
@@ -166,7 +169,12 @@ async function encodedFps(
       return [rid, b ? ((s.frames - b.frames) * 1000) / (s.at - b.at) : -1];
     }),
   );
-  return { layers, pushed: pushedFps };
+  // The same for every layer: it's the sender's.
+  const bandwidthLimited = Math.max(
+    0,
+    ...[...after].map(([rid, s]) => s.bandwidthLimited - (before.get(rid)?.bandwidthLimited ?? 0)),
+  );
+  return { layers, pushed: pushedFps, bandwidthLimited };
 }
 
 test('maxFramerate caps the encoded frame rate; the source’s own sink still gets every frame', async (t) => {
@@ -222,15 +230,25 @@ test('per-layer maxFramerate on VP8 simulcast keeps VP8, with one encoder per la
   for (const rid of rids) assert.equal(switched.get(rid)?.codec, 'video/VP8', rid);
   await local.more(15); // settle
 
-  const { layers, pushed } = await encodedFps(p.a, local, 90);
-  const [l, m, h] = rids.map((rid) => layers.get(rid) ?? -1) as [number, number, number];
-  const shown = `encoded fps: l ${l.toFixed(1)}, m ${m.toFixed(1)}, h ${h.toFixed(1)} of ${pushed.toFixed(1)} pushed`;
-  t.diagnostic(shown);
-  // 15, 10 and 5 of about 30 fps.
-  assert.ok(l > 7 && l < 17, shown);
-  assert.ok(m > 4.5 && m < 12, shown);
-  assert.ok(h > 2 && h < 6.5, shown);
-  assert.ok(l > m && m > h, shown);
+  // 15, 10 and 5 of about 30 fps. A layer never goes over its cap. When
+  // the bandwidth estimate dips (it did on a GitHub macOS runner), the
+  // simulcast allocator switches the top layer off for a while, so a slow
+  // window that was bandwidth-limited is measured again, up to three times.
+  // A slow window with no bandwidth limit fails.
+  const windows: string[] = [];
+  for (;;) {
+    const { layers, pushed, bandwidthLimited } = await encodedFps(p.a, local, 90);
+    const [l, m, h] = rids.map((rid) => layers.get(rid) ?? -1) as [number, number, number];
+    const shown =
+      `encoded fps: l ${l.toFixed(1)}, m ${m.toFixed(1)}, h ${h.toFixed(1)} of ${pushed.toFixed(1)} pushed, ` +
+      `${bandwidthLimited.toFixed(1)} s bandwidth-limited`;
+    t.diagnostic(shown);
+    windows.push(shown);
+    assert.ok(l < 17 && m < 12 && h < 6.5, `over a cap: ${shown}`);
+    if (l > 7 && m > 4.5 && h > 2 && l > m && m > h) break;
+    assert.ok(bandwidthLimited > 0, `out of range, not bandwidth-limited: ${shown}`);
+    assert.ok(windows.length < 3, `out of range in every window:\n${windows.join('\n')}`);
+  }
   assert.deepEqual([...local.log.sizes], ['960x540']);
 });
 

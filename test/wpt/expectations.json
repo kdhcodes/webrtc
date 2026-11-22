@@ -691,7 +691,10 @@
     "webrtc/RTCIceTransport.html?rest": {
       "status": "OK",
       "subtests": {
-        "Validate selected candidate pair": "PASS",
+        "Validate selected candidate pair": {
+          "status": ["PASS", "FAIL"],
+          "reason": "flaky under load: the answerer's selected local candidate and the offerer's selected remote candidate are read from two peer connections whose selected-pair reports can be momentarily out of step (2 of 4 runs under heavy CPU load locally; passes idle)"
+        },
         "Two connected iceTransports should have matching local/remote candidates returned": {
           "status": "FAIL",
           "reason": "the test expects gatheringState 'gathering' or 'completed' (not an RTCIceGathererState) once connected; ours is 'complete', as is Chromium 159 (Playwright)'s, which fails earlier in this subtest (its role is null)"
@@ -718,7 +721,10 @@
         "Remote ICE restart should not result in a different ICE transport": "PASS",
         "Remote ICE restart should not result in a different ICE transport (DataChannel case)": "PASS",
         "RTCIceTransport should transition to \"closed\" if the underlying transport is closed because the answer used bundle": "PASS",
-        "RTCIceTransport should synchronously transition to \"closed\" with no event if the underlying transport is closed due to PC.close()": "PASS",
+        "RTCIceTransport should synchronously transition to \"closed\" with no event if the underlying transport is closed due to PC.close()": {
+          "status": ["PASS", "FAIL"],
+          "reason": "flaky under load: libwebrtc can report 'checking' before setRemoteDescription(answer) resolves (the remote's checks arrive first), so the test's listener, added after that await, sees 'connected' first (failed once on gpubox under load and once on a GitHub linux-x64 runner)"
+        },
         "RTCIceTransport does not expose remote peer-reflexive candidates.": "PASS",
         "RTCIceTransport.role should be \"unknown\" before the answer is applied": "PASS",
         "RTCIceTransport.role should not change when the answerer initiates an ICE restart": {
@@ -2533,7 +2539,10 @@
       "status": "OK",
       "subtests": {
         "An unconnected peerconnection must not have maxChannels set": "PASS",
-        "maxChannels gets instantiated after connecting": "PASS"
+        "maxChannels gets instantiated after connecting": {
+          "status": ["PASS", "FAIL"],
+          "reason": "flaky under load: the test checks maxChannels is still null right after setRemoteDescription(answer) resolves, but a slow machine can finish ICE, DTLS and SCTP before the code after that await runs (failed once on a GitHub linux-x64 runner)"
+        }
       }
     },
     "webrtc/RTCSctpTransport-maxChannels.html?rest": {
