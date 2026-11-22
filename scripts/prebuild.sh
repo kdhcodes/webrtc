@@ -119,6 +119,15 @@ build_one() {
   esac
 }
 
+# Docker's name for a Linux triple's platform (x64 is amd64 there).
+docker_platform() {
+  case "$1" in
+    linux-x64) echo linux/amd64 ;;
+    linux-arm64) echo linux/arm64 ;;
+    *) die "no Docker platform for $1" ;;
+  esac
+}
+
 host_arch() {
   case "$(uname -m)" in
     arm64 | aarch64) echo arm64 ;;
@@ -130,7 +139,8 @@ host_arch() {
 # A Linux binary from docker/linux.Dockerfile's `addon` target, on a host of
 # the same architecture (an arm64 Mac, or a Linux CI runner), into $tmp.
 docker_build() {
-  local triple="$1" lib
+  local triple="$1" lib platform
+  platform="$(docker_platform "$triple")"
   lib="$(libwebrtc_dir "$triple")"
   [ -f "$lib/lib/libwebrtc.a" ] ||
     die "no libwebrtc build in $lib; run scripts/libwebrtc-assets.sh fetch $triple, or" \
@@ -138,7 +148,7 @@ docker_build() {
   check_libwebrtc "$triple" "$lib/.source"
   cp "$lib/.source" "$tmp/libwebrtc-source"
   # -P: a worktree's third_party/libwebrtc-upstream is a symlink.
-  docker build --platform "linux/${triple#linux-}" -f docker/linux.Dockerfile --target addon \
+  docker build --platform "$platform" -f docker/linux.Dockerfile --target addon \
     --build-context libwebrtc="$(cd -P "$lib" && pwd)" \
     --output "type=local,dest=$tmp/out" .
   mv "$tmp/out/wrtc.node" "$tmp/wrtc.node"
