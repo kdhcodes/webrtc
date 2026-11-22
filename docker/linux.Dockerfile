@@ -10,7 +10,11 @@
 # (scripts/prebuild.sh linux-arm64):
 #   docker build -f docker/linux.Dockerfile --build-context libwebrtc=<dir> \
 #     --target addon --output type=local,dest=<dir> .
-FROM ubuntu:24.04 AS build
+#
+# The stages before libwebrtc comes in (toolchain, then deps with
+# node_modules) don't depend on it, so CI caches only those
+# (.github/workflows/ci.yml) and never the libwebrtc layer.
+FROM ubuntu:24.04 AS toolchain
 
 # Pinned to what the spike was verified with. clang is pinned by major only
 # (apt.llvm.org ships the latest point release); Ubuntu by tag only.
@@ -34,6 +38,12 @@ RUN arch=$(dpkg --print-architecture | sed 's/amd64/x64/') \
  && npm install -g pnpm@${PNPM_VERSION} node-gyp
 
 WORKDIR /src
+
+FROM toolchain AS deps
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS build
 # The libwebrtc build for the image's platform (scripts/build-libwebrtc.sh),
 # passed in as the named build context `libwebrtc`, since
 # third_party/libwebrtc-upstream is outside the main context (.dockerignore;
@@ -46,9 +56,6 @@ RUN arch=$(dpkg --print-architecture | sed 's/amd64/x64/') \
     || { echo "the libwebrtc build context is not linux-$arch-release" >&2; exit 1; } \
  && ln -s build /opt/libwebrtc-upstream/linux-$arch-release
 ENV WRTC_LIBWEBRTC_DIR=/opt/libwebrtc-upstream
-
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
 
 COPY . .
 RUN pnpm run build && pnpm run typecheck
