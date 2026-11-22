@@ -369,20 +369,28 @@ Whenever the libwebrtc build changes (the upstream pin, `third_party/args`,
    Without the variable the file runs only its offline test: a loopback
    server with a throwaway CA's certificate must be refused.
 
-### Packaging (prebuilt, locally installable tarballs)
+### Packaging (prebuilt tarballs, the ones npm gets)
 
-Nothing is published. `artifacts/` (gitignored) gets a main package,
-`@kdh.codes/webrtc` (the JS in `dist/` and its types), and one platform
+`artifacts/` (gitignored) gets a main package,
+`@kdh.codes/webrtc` (the JS in `dist/`, its types and `README.md`), and one platform
 package per supported platform (`@kdh.codes/webrtc-darwin-arm64`,
 `-linux-arm64`, `-linux-x64`) carrying `wrtc.node`, with `os`/`cpu` (and
 `libc: glibc`) fields. The main package
-lists them as optional `peerDependencies` (see `scripts/package.sh` for why
-not `optionalDependencies`). `lib/internal/native.ts` loads
+lists them as `optionalDependencies` at exactly its own version, as wrtc
+does, so installs pick the platform's package automatically
+(`PLATFORM_DEPS=peer scripts/package.sh` makes them optional
+`peerDependencies` instead; `scripts/package.sh` says why that used to be
+the default). The manifests come from `scripts/package-manifests.mjs`:
+`name`, `version`, `license`, `repository`, `homepage`, `bugs` and
+`publishConfig` are taken from `package.json` for every package (npm's
+provenance check needs `repository` in each). These tarballs are what gets
+published ("CI and releases" below). `lib/internal/native.ts` loads
 `build/Release/wrtc.node` when it exists (a checkout), and otherwise the
 installed `<name>-<platform>-<arch>` package. Renaming the package is a
 one-line change: `name` in `package.json`. A scoped name packs as
-`<scope>-<name>-<version>.tgz` (`kdh.codes-webrtc-0.0.0.tgz`), without
-the `@` and with the `/` as `-`.
+`<scope>-<name>-<version>.tgz` (`kdh.codes-webrtc-0.1.0.tgz`), without
+the `@` and with the `/` as `-`. The repo root's `package.json` isn't a
+package to publish: its `prepublishOnly` fails `npm publish` there.
 
 Build all three binaries and package them, from an arm64 Mac, in this order:
 
@@ -404,8 +412,9 @@ native inputs or it was built from uncommitted native sources;
 `package.sh --strict` fails instead. A JS-only change needs only
 `package.sh`, not new binaries. Then install the
 main tarball plus the platform's, e.g. `npm install
-./kdh.codes-webrtc-0.0.0.tgz ./kdh.codes-webrtc-darwin-arm64-0.0.0.tgz` or the
-same with `pnpm add`; nothing is built on install.
+./kdh.codes-webrtc-0.1.0.tgz ./kdh.codes-webrtc-darwin-arm64-0.1.0.tgz` or the
+same with `pnpm add`; nothing is built on install. (Offline, the other two
+optional dependencies fail to resolve and are skipped.)
 
 Smoke-test them from clean installs with `scripts/smoke-install.sh [--pm
 pnpm] artifacts`: it installs only the two tarballs, offline, into a fresh

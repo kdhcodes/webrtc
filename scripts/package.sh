@@ -28,23 +28,28 @@
 # warning, or an error with --strict.
 #
 # The package name and version come from package.json; renaming it there
-# renames every package (and what the loader looks for).
+# renames every package (and what the loader looks for). So do the fields
+# every package carries for the registry (license, repository, homepage,
+# bugs, publishConfig); npm's provenance check needs `repository` in each.
+# The manifests come from scripts/package-manifests.mjs.
 #
 # Install the main tarball plus the one for your platform, e.g.
-#   npm install ./kdh.codes-webrtc-0.0.0.tgz ./kdh.codes-webrtc-darwin-arm64-0.0.0.tgz
+#   npm install ./kdh.codes-webrtc-0.1.0.tgz ./kdh.codes-webrtc-darwin-arm64-0.1.0.tgz
+# These tarballs are also what gets published, platform packages first
+# (CONTRIBUTING-AGENTS.md, "CI and releases").
 #
-# How the main package refers to the platform packages (PLATFORM_DEPS):
-#   peer (default)  optional peerDependencies: never installed implicitly.
-#   optional        optionalDependencies, as @roamhq/wrtc does: the package
-#                   manager picks the platform's package itself, which is
-#                   what you want once the packages are published.
-# Peers are the default because nothing is published: with
-# optionalDependencies npm resolves all three names in the public registry,
-# and if someone publishes one of them, npm installs it and runs its install
-# scripts (reproduced with a fake registry). With peers, npm still looks the
-# two absent names up but never installs them. The names are now scoped
-# (@kdh.codes, an npm org we own), which removes that risk with either
-# wiring: only the scope's owner can publish into it.
+# How the main package refers to the platform packages (PLATFORM_DEPS), each
+# at exactly the main package's version:
+#   optional (default)  optionalDependencies, as @roamhq/wrtc does: the
+#                       package manager installs the platform's package itself.
+#   peer                optional peerDependencies: never installed implicitly,
+#                       so install the platform's package next to the main one.
+# With optionalDependencies npm resolves all three names in the public
+# registry, and if someone else had published one of them, npm would install
+# it and run its install scripts (reproduced with a fake registry); that's
+# why peers were the default before anything was published. The names are
+# scoped (@kdh.codes, an npm org we own), which removes that risk: only the
+# scope's owner can publish into it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/native-inputs.sh
@@ -108,7 +113,7 @@ mkdir -p "$stage/main"
 rm -rf dist
 pnpm run build:ts --sourceMap false >/dev/null
 cp -R dist "$stage/main/dist"
-cp LICENSE THIRD_PARTY_NOTICES.md "$stage/main/"
+cp README.md LICENSE THIRD_PARTY_NOTICES.md "$stage/main/"
 for triple in ${present[@]+"${present[@]}"}; do
   mkdir -p "$stage/$triple"
   cp "$out/prebuilds/$triple/wrtc.node" "$stage/$triple/wrtc.node"
@@ -118,65 +123,11 @@ for triple in ${present[@]+"${present[@]}"}; do
     "$(cat "$out/prebuilds/$triple/commit" 2>/dev/null || echo unknown)" >"$stage/$triple/.build"
 done
 
-# Writes the staged package.json files (main, then one per platform present).
+# The staged package.json files (main, then one per platform present) and
+# each platform package's README.
 # (The ${a[@]+...} form keeps bash 3.2 happy with an empty array under set -u.)
-node - "$stage" "$build_id" "${platforms[*]}" ${present[@]+"${present[@]}"} <<'EOF'
-const { readFileSync, writeFileSync, rmSync } = require('node:fs');
-const [stage, buildId, all, ...present] = process.argv.slice(2);
-const root = JSON.parse(readFileSync('package.json', 'utf8'));
-const write = (dir, manifest) =>
-  writeFileSync(`${dir}/package.json`, `${JSON.stringify(manifest, null, 2)}\n`);
-const platformPackage = (triple) => `${root.name}-${triple}`;
-const engines = { node: '>=24' };
-const legal = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
-
-const runtimeDeps = { ...root.dependencies };
-delete runtimeDeps['node-addon-api']; // headers for the native build only
-const wiring = process.env.PLATFORM_DEPS ?? 'peer';
-if (!['peer', 'optional'].includes(wiring)) throw new Error(`PLATFORM_DEPS=${wiring}?`);
-const deps = Object.fromEntries(all.split(' ').map((t) => [platformPackage(t), root.version]));
-write(`${stage}/main`, {
-  name: root.name,
-  version: root.version,
-  private: root.private,
-  description: root.description,
-  license: root.license,
-  type: root.type,
-  exports: root.exports,
-  types: root.types,
-  engines,
-  nativeBuild: buildId,
-  files: ['dist', ...legal],
-  ...(Object.keys(runtimeDeps).length ? { dependencies: runtimeDeps } : {}),
-  ...(wiring === 'optional'
-    ? { optionalDependencies: deps }
-    : {
-        peerDependencies: deps,
-        peerDependenciesMeta: Object.fromEntries(
-          Object.keys(deps).map((name) => [name, { optional: true }]),
-        ),
-      }),
-});
-for (const triple of present) {
-  const [os, cpu] = triple.split('-');
-  const [built, commit] = readFileSync(`${stage}/${triple}/.build`, 'utf8').trim().split('\t');
-  rmSync(`${stage}/${triple}/.build`);
-  write(`${stage}/${triple}`, {
-    name: platformPackage(triple),
-    version: root.version,
-    private: root.private,
-    description: `The ${triple} native addon for ${root.name}, built from ${commit}.`,
-    license: root.license,
-    os: [os],
-    cpu: [cpu],
-    ...(os === 'linux' ? { libc: ['glibc'] } : {}),
-    engines,
-    nativeBuild: built,
-    main: 'wrtc.node',
-    files: ['wrtc.node', ...legal],
-  });
-}
-EOF
+node scripts/package-manifests.mjs "$stage" "$build_id" "${platforms[*]}" \
+  ${present[@]+"${present[@]}"}
 
 pack() {
   (cd "$1" && pnpm pack --pack-destination "$OLDPWD/$out" >/dev/null)
@@ -184,6 +135,14 @@ pack() {
 pack "$stage/main"
 for triple in ${present[@]+"${present[@]}"}; do pack "$stage/$triple"; done
 rm -rf "$stage"
+# npm's package page shows the README of the main package's tarball.
+main_tgz="$out/$(node -p 'const p = require("./package.json"); `${p.name.replace("@", "").replace("/", "-")}-${p.version}.tgz`')"
+# (Not `tar | grep -q`: grep's early exit would fail tar under pipefail.)
+main_files="$(tar -tzf "$main_tgz")"
+grep -qx package/README.md <<<"$main_files" || {
+  echo "error: $main_tgz has no README.md" >&2
+  exit 1
+}
 
 echo "packages in $out/ (native build $build_id):"
 for tgz in "$out"/*.tgz; do
