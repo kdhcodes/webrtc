@@ -4,21 +4,29 @@
 #
 #   scripts/libwebrtc-assets.sh pack [<triple>...|all]    (default: all)
 #   scripts/libwebrtc-assets.sh fetch [--force] [<triple>...|all]  (default: this machine's)
+#   scripts/libwebrtc-assets.sh sha256 <triple>
 #
 # pack: archives each third_party/libwebrtc-upstream/<os>-<arch>-release/
 # (scripts/build-libwebrtc.sh's whole layout: include/, lib/libwebrtc.a,
 # .source, LICENSE.md, args.gn, webrtc.ninja, ...) into
-# artifacts/libwebrtc/libwebrtc-<config id>-<triple>.tar.xz, with its
-# SHA-256 next to it in <asset>.sha256 (sha256sum's format). It refuses a
-# build that doesn't match this checkout (scripts/gyp-webrtc.py check), since
-# the asset's name claims this checkout's config id, or an asset over
-# GitHub's 2 GiB limit, and prints the command that uploads the assets.
+# artifacts/libwebrtc/libwebrtc-<config id>-<triple>.tar.xz, and records
+# each one's SHA-256 in third_party/libwebrtc-assets.sha256 (sha256sum's
+# format, one line per asset, so per config id and triple), which is
+# committed. It refuses a build that doesn't match this checkout
+# (scripts/gyp-webrtc.py check), since the asset's name claims this
+# checkout's config id, or an asset over GitHub's 2 GiB limit, and prints
+# the command that uploads the assets.
 #
-# fetch: downloads libwebrtc-<config id>-<triple>.tar.xz and its .sha256
-# from the GitHub release tagged libwebrtc-<config id>, checks the hash,
+# fetch: downloads libwebrtc-<config id>-<triple>.tar.xz from the GitHub
+# release tagged libwebrtc-<config id>, checks it against the SHA-256
+# committed in third_party/libwebrtc-assets.sha256 (not one from the
+# release, which whoever could replace the archive could replace too),
 # unpacks it into third_party/libwebrtc-upstream/ and runs gyp-webrtc.py
 # check. A build already there that matches this checkout is kept as is
 # (--force fetches anyway).
+#
+# sha256: the committed SHA-256 of this config's asset for <triple> (CI's
+# cache key).
 #
 # <triple> is darwin-arm64, linux-x64 or linux-arm64. The config id is
 # `python3 scripts/gyp-webrtc.py config-id`: what every libwebrtc build is
@@ -38,6 +46,7 @@ cd "$(dirname "$0")/.."
 
 repo_slug=kevindhanna/webrtc
 triples=(darwin-arm64 linux-arm64 linux-x64)
+hashes=third_party/libwebrtc-assets.sha256
 
 die() {
   echo "libwebrtc-assets: $*" >&2
@@ -83,6 +92,12 @@ config_id="$(python3 scripts/gyp-webrtc.py config-id)"
 tag="libwebrtc-$config_id"
 asset_name() { echo "libwebrtc-$config_id-$1.tar.xz"; }
 
+# The committed SHA-256 of asset $1, or nothing.
+committed_hash() {
+  [ -f "$hashes" ] || return 0
+  awk -v name="$1" '$2 == name { print $1 }' "$hashes"
+}
+
 # The triples named on the command line ("all" for every one), or $1's default.
 pick_triples() {
   local default="$1"
@@ -123,7 +138,7 @@ cmd_pack() {
     tar_opts=(--uid 0 --gid 0 --no-mac-metadata --no-xattrs)
     export COPYFILE_DISABLE=1
   fi
-  local t dir asset size
+  local t dir asset size f
   local picked
   picked="$(pick_triples all "$@")"
   # Check everything before writing anything.
@@ -139,6 +154,7 @@ cmd_pack() {
       log "warning: $base/$dir/licenses.log exists: its LICENSE.md is libwebrtc's own only"
   done
   mkdir -p "$out"
+  local recorded=""
   for t in $picked; do
     dir="$(dir_name "$t")"
     asset="$(asset_name "$t")"
@@ -152,8 +168,19 @@ cmd_pack() {
     mv "$out/$asset.partial" "$out/$asset"
     size="$(size_of "$out/$asset")"
     [ "$size" -lt "$limit" ] || die "$out/$asset is $size bytes, over GitHub's 2 GiB asset limit"
-    echo "$(sha256 "$out/$asset")  $asset" >"$out/$asset.sha256"
+    recorded="$recorded$(sha256 "$out/$asset")  $asset
+"
   done
+  # Replaces these assets' lines and keeps every other config's.
+  {
+    if [ -f "$hashes" ]; then
+      for t in $picked; do echo "$(asset_name "$t")"; done |
+        awk 'NR == FNR { packed[$1] = 1; next } !($2 in packed)' - "$hashes"
+    fi
+    printf '%s' "$recorded"
+  } | LC_ALL=C sort -k2 >"$hashes.partial"
+  mv "$hashes.partial" "$hashes"
+
   echo "libwebrtc assets for config $config_id in $out:"
   for t in $picked; do
     asset="$(asset_name "$t")"
@@ -162,18 +189,28 @@ cmd_pack() {
   local files=""
   for t in $picked; do
     files="$files \\
-    $out/$(asset_name "$t") $out/$(asset_name "$t").sha256"
+    $out/$(asset_name "$t")"
   done
   cat <<EOF
 
-Upload them (CONTRIBUTING-AGENTS.md, "CI and releases"). A new release:
+Their SHA-256s are in $hashes: commit it, since fetch checks
+downloads against it. Upload the assets before pushing that commit
+(CONTRIBUTING-AGENTS.md, "CI and releases"):
   gh release create $tag --repo $repo_slug --target main --latest=false \\
     --title "libwebrtc $config_id" \\
     --notes "libwebrtc builds for config id $config_id (scripts/libwebrtc-assets.sh)"$files
-or, to add to the release when it exists:
-  gh release upload $tag --repo $repo_slug --clobber$files
 EOF
 }
+
+stage=""
+tmp_cache=""
+# Only what this run made: another checkout sharing $base (a worktree's
+# link) may be unpacking into it at the same time.
+cleanup() {
+  if [ -n "$stage" ]; then rm -rf "$stage"; fi
+  if [ -n "$tmp_cache" ]; then rm -rf "$tmp_cache"; fi
+}
+trap cleanup EXIT
 
 cmd_fetch() {
   local force=false
@@ -183,13 +220,10 @@ cmd_fetch() {
   fi
   local url="${WRTC_LIBWEBRTC_BASE_URL:-https://github.com/$repo_slug/releases/download/$tag}"
   local cache="${WRTC_LIBWEBRTC_CACHE:-}"
-  local tmp_cache=""
   if [ -z "$cache" ]; then
     tmp_cache="$(mktemp -d)"
     cache="$tmp_cache"
   fi
-  # shellcheck disable=SC2064 # expand now: the paths are local
-  trap "rm -rf '$tmp_cache' '$base'/.fetch.*" EXIT
   mkdir -p "$cache"
 
   if [ -L "$base" ]; then
@@ -212,42 +246,38 @@ cmd_fetch() {
         "to fetch your own."
     fi
 
-    want=""
-    if [ -f "$cache/$asset" ] && [ -f "$cache/$asset.sha256" ]; then
-      want="$(cut -d' ' -f1 <"$cache/$asset.sha256")"
-      if [ "$(sha256 "$cache/$asset")" = "$want" ]; then
-        log "using $cache/$asset"
-      else
-        want=""
-      fi
-    fi
-    if [ -z "$want" ]; then
+    want="$(committed_hash "$asset")"
+    [ -n "$want" ] ||
+      die "no SHA-256 for $asset in $hashes: scripts/libwebrtc-assets.sh pack records it" \
+        "when it makes the asset, and that commit must be in this checkout" \
+        "(CONTRIBUTING-AGENTS.md, \"CI and releases\")"
+    if [ -f "$cache/$asset" ] && [ "$(sha256 "$cache/$asset")" = "$want" ]; then
+      log "using $cache/$asset"
+    else
+      [ ! -f "$cache/$asset" ] || log "$cache/$asset doesn't match $hashes; downloading it again"
+      rm -f "$cache/$asset"
       log "downloading $url/$asset"
-      curl -fsSL --retry 3 --retry-delay 2 -o "$cache/$asset.sha256.partial" "$url/$asset.sha256" ||
-        die "can't download $url/$asset.sha256: is there a $tag release with $t assets?" \
-          "(make them with scripts/libwebrtc-assets.sh pack, CONTRIBUTING-AGENTS.md \"CI and releases\")"
       curl -fsSL --retry 3 --retry-delay 2 -o "$cache/$asset.partial" "$url/$asset" ||
-        die "can't download $url/$asset"
-      want="$(cut -d' ' -f1 <"$cache/$asset.sha256.partial")"
+        die "can't download $url/$asset: is there a $tag release with $t assets?" \
+          "(make them with scripts/libwebrtc-assets.sh pack, CONTRIBUTING-AGENTS.md \"CI and releases\")"
       got="$(sha256 "$cache/$asset.partial")"
       if [ "$got" != "$want" ]; then
-        rm -f "$cache/$asset.partial" "$cache/$asset.sha256.partial"
-        die "$asset: SHA-256 is $got, but $asset.sha256 says $want; nothing was unpacked"
+        rm -f "$cache/$asset.partial"
+        die "$asset: SHA-256 is $got, but $hashes says $want; nothing was unpacked"
       fi
-      mv "$cache/$asset.sha256.partial" "$cache/$asset.sha256"
       mv "$cache/$asset.partial" "$cache/$asset"
     fi
 
     # Unpacked into an empty directory next to the builds, of which only
     # $dir/ is moved into place (tar itself refuses absolute and ../ paths).
     mkdir -p "$base"
-    local stage
     stage="$(mktemp -d "$base/.fetch.XXXXXX")"
     tar -xJf "$cache/$asset" -C "$stage" --no-same-owner
     [ -f "$stage/$dir/lib/libwebrtc.a" ] || die "$asset has no $dir/lib/libwebrtc.a"
     rm -rf "${base:?}/$dir"
     mv "$stage/$dir" "$base/$dir"
     rm -rf "$stage"
+    stage=""
     check_build "$t" loud || die "the unpacked $t build doesn't match this checkout"
     log "$base/$dir: config $config_id, from $asset"
   done
@@ -262,9 +292,17 @@ case "${1:-}" in
     shift
     cmd_fetch "$@"
     ;;
+  sha256)
+    [ $# -eq 2 ] || die "usage: scripts/libwebrtc-assets.sh sha256 <triple>"
+    dir_name "$2" >/dev/null
+    want="$(committed_hash "$(asset_name "$2")")"
+    [ -n "$want" ] || die "no SHA-256 for $(asset_name "$2") in $hashes"
+    echo "$want"
+    ;;
   *)
     echo "usage: scripts/libwebrtc-assets.sh pack [<triple>...|all]" >&2
     echo "       scripts/libwebrtc-assets.sh fetch [--force] [<triple>...|all]" >&2
+    echo "       scripts/libwebrtc-assets.sh sha256 <triple>" >&2
     exit 2
     ;;
 esac
