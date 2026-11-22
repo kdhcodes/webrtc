@@ -676,14 +676,26 @@ with the CI branch merged locally:
    `@kdh.codes/webrtc-darwin-arm64`, `-linux-arm64`, `-linux-x64`), on
    npmjs.com: the package's Settings, "Trusted Publisher", GitHub Actions,
    with organization or user `kevindhanna`, repository `webrtc`, workflow
-   filename `release.yml` and environment name `npm`. Once all four publish
+   filename `release.yml` and environment name `npm`, with "Allow npm
+   publish" ticked (the workflow runs `npm publish`; without it only `npm
+   stage publish` is allowed). npm marks a new trusted publisher "Pending
+   validation" until a publish through it, and drops it if that doesn't
+   happen within about 2 days, so release a new version from CI soon after
+   (0.1.1 did this, 2026-11-22). Once all four publish
    from CI, "Require two-factor authentication and disallow tokens" in the
    same settings stops token publishes.
 4. On GitHub: Settings, Environments, `npm` (a run creates it if it doesn't
    exist), with yourself as a required reviewer and deployments limited to
-   tags matching `v*`; and immutable releases (above).
-5. Optionally push `v0.1.0` too: the release run then builds and
-   smoke-tests 0.1.0 from CI and skips the publish, since it's out.
+   tags matching `v*` (add it as ref type Tag: a branch rule `v*` blocks
+   every tag); and immutable releases (above).
+5. Don't use `v0.1.0` to try the release workflow: its publish skips a
+   version that's out, which doesn't validate the trusted publishers.
+   Release a new version instead.
+
+npm took about 4 minutes to serve the new packages after the first publish
+("Your package is being processed"); until then the registry answers 404.
+npm's 2FA for writes here is a browser approval, so a manual `npm publish`
+has to run in a real terminal that can wait for it.
 
 What's only known to work once it has run on GitHub (none of it could run
 locally): the runners' toolchains (Xcode 26.6 on macos-26, Docker on the
