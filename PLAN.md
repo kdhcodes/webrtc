@@ -613,6 +613,30 @@ Lifetime:
     (the library) and the reproducer above. Recheck on Node upgrades
     (drop the guidance once a fixed Node 24 is the floor; Node 26 needs
     #67467).
+- **Our types and lib.dom's must be assignable both ways** (since
+  2026-11-23). wrtc's types re-export the DOM's, so wrtc code mixes
+  `wrtc.MediaStream` with the global `MediaStream`. `scripts/check-dom-types.mjs`
+  (in `pnpm run typecheck`) compiles `test/dom-compat/` against the
+  published declarations with the current TypeScript's lib.dom and with
+  TypeScript 5.8's (the `typescript-5.8` devDependency). What it took:
+  - `build:ts` (`scripts/build-ts.mjs`) drops tsc's `#private;` and the
+    `[Symbol.toStringTag]` getters from the `.d.ts` files: a JS private
+    field makes a class nominal, so no DOM-typed value was assignable to it.
+  - `on<event>` getters return `AnyEventHandler` (`lib/internal/events.ts`),
+    `(event: Event)` through a method signature: lib.dom's handlers take
+    their own event type, and only the bivariant comparison accepts them;
+    `Event` itself keeps ours assignable to lib.dom's handlers. Only the
+    getter's type takes part in assignability; the setter's doesn't.
+  - Where lib.dom's dictionary types differ between TypeScript versions
+    with no one type of ours assignable to and from both (TypeScript 5.8's
+    `echoCancellation` is `boolean`-only), the generator types that member
+    as the consumer's own lib.dom has it (`LIB_DOM_MEMBERS` in
+    `scripts/gen-idl.mjs`, via `declare global` interfaces that are empty
+    without a DOM lib).
+  - What can't hold is `@ts-expect-error` with the reason in the test:
+    mostly spec members lib.dom lacks (`RTCIceTransport.role` and others,
+    `RTCIceCandidate.relayProtocol`/`url`), which make DOM-typed transports,
+    and everything holding one, not assignable to ours.
 
 ## Linux
 

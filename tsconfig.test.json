@@ -5,5 +5,5 @@
     "rootDir": "."
   },
   "include": ["lib/**/*.ts", "test/**/*.ts", "scripts/**/*.test.ts", "scripts/**/*.d.mts"],
-  "exclude": ["test/types-dom/**"]
+  "exclude": ["test/types-dom/**", "test/dom-compat/**"]
 }

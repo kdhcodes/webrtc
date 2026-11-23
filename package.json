@@ -37,7 +37,7 @@
     "build": "node-gyp rebuild -j max && scripts/check-undefined.sh",
     "build:ts": "node scripts/build-ts.mjs",
     "prepublishOnly": "echo 'Publish the tarballs scripts/package.sh makes in artifacts/, not the repo (CONTRIBUTING-AGENTS.md, \"CI and releases\").' >&2 && exit 1",
-    "typecheck": "tsc -p tsconfig.test.json && tsc -p tsconfig.dom.json",
+    "typecheck": "tsc -p tsconfig.test.json && tsc -p tsconfig.dom.json && node scripts/check-dom-types.mjs",
     "gen:idl": "node scripts/gen-idl.mjs",
     "test": "node --test --test-timeout=60000 'lib/**/*.test.ts' 'scripts/**/*.test.ts' 'test/**/*.test.ts'",
     "spike": "node test/spike/dc-ping.mjs",
@@ -61,6 +61,7 @@
     "@webref/idl": "^3.87.0",
     "playwright": "^1.65.1",
     "typescript": "^7.0.2",
+    "typescript-5.8": "npm:typescript@~5.8",
     "webidl2": "^24.5.0"
   },
   "packageManager": "pnpm@12.9.0"

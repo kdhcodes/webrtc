@@ -1,0 +1,16 @@
+{
+  // The DOM compatibility test with TypeScript 5.8's lib.dom (the
+  // `typescript-5.8` devDependency; run by scripts/check-dom-types.mjs).
+  // Whereby's assistant-sdk compiles with 5.8.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false
+  },
+  "files": ["dom-compat.ts"]
+}

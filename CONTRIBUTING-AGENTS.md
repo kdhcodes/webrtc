@@ -128,10 +128,10 @@ about 12 MiB/s. See the PLAN.md gotcha "Data channel throughput".
 | `pnpm run build` | node-gyp build of `build/Release/wrtc.node` plus the unresolved-symbol check |
 | `pnpm test` | `node --test` over `lib/**/*.test.ts` and `test/**/*.test.ts` (runs the `.ts` directly) |
 | `pnpm run test:unit` | only the colocated unit tests under `lib/` |
-| `pnpm run typecheck` | `tsc` over `lib/` and `test/`, plus the DOM-lib fixture in `test/types-dom/` |
+| `pnpm run typecheck` | `tsc` over `lib/` and `test/`, plus the DOM-lib fixture in `test/types-dom/`, plus `scripts/check-dom-types.mjs`: our published declarations and lib.dom's types assignable both ways (`test/dom-compat/`), with the current TypeScript and with 5.8 (PLAN.md Gotchas) |
 | `pnpm run test:exit` | runs every test file that can touch the addon under plain `node`; fails if one hangs (leaked handle) |
 | `pnpm run test:interop` | Chrome interop (`test/interop/*.interop.ts`): our peer connection against headless Chromium through Playwright. Not part of `pnpm test`; needs the browser download below |
-| `pnpm run build:ts` | compiles `lib/` to `dist/` |
+| `pnpm run build:ts` | compiles `lib/` to `dist/` (`scripts/build-ts.mjs`: tsc, then the `.d.ts` files lose `#private` and the `[Symbol.toStringTag]` getters, so our classes are typed structurally, as lib.dom's are) |
 | `pnpm run bench` | performance comparison with `@roamhq/wrtc` (`bench/`, see below). Not part of `pnpm test`; takes about 40 minutes with the defaults |
 | `pnpm run wpt` | Web Platform Tests `webrtc/` (`test/wpt/`, see below) against ours; prints the deltas from `test/wpt/expectations.json` and fails on an unexpected failure. Not part of `pnpm test`; about 3 minutes |
 | `pnpm run wpt:update` | the same, rewriting `expectations.json` and `wrtc-comparison.md` instead of gating |
