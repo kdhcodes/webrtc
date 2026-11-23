@@ -35,7 +35,7 @@
   "scripts": {
     "build-libwebrtc": "scripts/build-libwebrtc.sh",
     "build": "node-gyp rebuild -j max && scripts/check-undefined.sh",
-    "build:ts": "tsc -p tsconfig.json",
+    "build:ts": "node scripts/build-ts.mjs",
     "prepublishOnly": "echo 'Publish the tarballs scripts/package.sh makes in artifacts/, not the repo (CONTRIBUTING-AGENTS.md, \"CI and releases\").' >&2 && exit 1",
     "typecheck": "tsc -p tsconfig.test.json && tsc -p tsconfig.dom.json",
     "gen:idl": "node scripts/gen-idl.mjs",
