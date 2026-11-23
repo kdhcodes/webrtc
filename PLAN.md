@@ -618,15 +618,22 @@ Lifetime:
   `wrtc.MediaStream` with the global `MediaStream`. `scripts/check-dom-types.mjs`
   (in `pnpm run typecheck`) compiles `test/dom-compat/` against the
   published declarations with the current TypeScript's lib.dom and with
-  TypeScript 5.8's (the `typescript-5.8` devDependency). What it took:
+  TypeScript 5.8's (the `typescript-5.8` devDependency), checks that the
+  `on<event>` setters still refuse a handler of another event, and
+  compiles the declarations without a DOM lib (`no-dom.ts`) with both
+  versions. What it took:
   - `build:ts` (`scripts/build-ts.mjs`) drops tsc's `#private;` and the
     `[Symbol.toStringTag]` getters from the `.d.ts` files: a JS private
     field makes a class nominal, so no DOM-typed value was assignable to it.
-  - `on<event>` getters return `AnyEventHandler` (`lib/internal/events.ts`),
-    `(event: Event)` through a method signature: lib.dom's handlers take
-    their own event type, and only the bivariant comparison accepts them;
-    `Event` itself keeps ours assignable to lib.dom's handlers. Only the
-    getter's type takes part in assignability; the setter's doesn't.
+  - The 23 `on<event>` getters of `MediaStream`, `RTCPeerConnection`,
+    `RTCDataChannel` and the three transports return `AnyEventHandler`
+    (`lib/internal/events.ts`), `(event: Event)` through a method
+    signature: lib.dom's handlers take their own event type, and only the
+    bivariant comparison accepts them; `Event` itself keeps ours assignable
+    to lib.dom's handlers. Only the getter's type takes part in
+    assignability; the setters keep taking only their own event's handler.
+    `MediaStreamTrack`'s handlers are its own `(ev: Event) => unknown`,
+    which lib.dom's (also `Event`) already matched.
   - Where lib.dom's dictionary types differ between TypeScript versions
     with no one type of ours assignable to and from both (TypeScript 5.8's
     `echoCancellation` is `boolean`-only), the generator types that member

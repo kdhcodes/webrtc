@@ -5,7 +5,9 @@
 // to test/dom-compat/.declarations. The test compiles twice: with the
 // current TypeScript and its lib.dom, and with TypeScript 5.8 and its
 // lib.dom (the `typescript-5.8` devDependency), whose dictionaries differ in
-// places. Part of `pnpm run typecheck`.
+// places. Each also compiles the declarations without a DOM lib, as a
+// Node-only consumer does (test/dom-compat/no-dom.ts). Part of
+// `pnpm run typecheck`.
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -21,11 +23,13 @@ const compilers = [
     name: `TypeScript ${version('typescript')}`,
     tsc: 'node_modules/typescript/bin/tsc',
     project: 'test/dom-compat/tsconfig.json',
+    noDom: 'test/dom-compat/tsconfig.no-dom.json',
   },
   {
     name: `TypeScript ${version('typescript-5.8')}`,
     tsc: 'node_modules/typescript-5.8/bin/tsc',
     project: 'test/dom-compat/tsconfig.ts5.8.json',
+    noDom: 'test/dom-compat/tsconfig.no-dom.json',
   },
 ];
 
@@ -65,7 +69,7 @@ if (run('scripts/build-ts.mjs', ['--emitDeclarationOnly', '--outDir', declaratio
 // Every export a lib.dom also declares must be checked (as `W.<name>`).
 const tested = new Set(
   readdirSync(join(root, 'test/dom-compat'))
-    .filter((file) => file.endsWith('.ts'))
+    .filter((file) => /^dom-compat.*\.ts$/.test(file))
     .flatMap((file) => [
       ...readFileSync(join(root, 'test/dom-compat', file), 'utf8').matchAll(/\bW\.(\w+)/g),
     ])
@@ -85,8 +89,12 @@ for (const compiler of compilers) {
 }
 if (untested) process.exit(1);
 
-const failed = compilers.filter((c) => run(c.tsc, ['-p', c.project]) !== 0).map((c) => c.name);
+const failed = compilers.flatMap((compiler) =>
+  [compiler.project, compiler.noDom]
+    .filter((project) => run(compiler.tsc, ['-p', project]) !== 0)
+    .map((project) => `${project} with ${compiler.name}`),
+);
 if (failed.length) {
-  console.error(`check-dom-types: test/dom-compat fails with ${failed.join(' and ')}`);
+  console.error(`check-dom-types: failed: ${failed.join(', ')}`);
   process.exit(1);
 }

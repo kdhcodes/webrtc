@@ -208,6 +208,35 @@ export const d_RTCTrackEventBut: Omit<W.RTCTrackEvent, 'receiver' | 'transceiver
   dom.RTCTrackEvent;
 
 // ---------------------------------------------------------------------------
+// on<event> setters stay strict. Only the getters' type takes part in the
+// assignments above, and it takes any event (AnyEventHandler); a setter
+// still takes only a handler of its own event, as lib.dom's do.
+
+export function handlerSetters(
+  pc: W.RTCPeerConnection,
+  stream: W.MediaStream,
+  channel: W.RTCDataChannel,
+): void {
+  // Handlers annotated with lib.dom's event types, and null.
+  pc.onicecandidate = (e: RTCPeerConnectionIceEvent) => void e.candidate;
+  pc.ontrack = (e: RTCTrackEvent) => void e.track;
+  stream.onaddtrack = (e: MediaStreamTrackEvent) => void e.track;
+  channel.onmessage = (e: MessageEvent) => void e.data;
+  pc.onicecandidate = null;
+
+  // @ts-expect-error: a track event handler for icecandidate.
+  pc.onicecandidate = (e: RTCTrackEvent) => void e.track;
+  // @ts-expect-error: a message event handler for addtrack.
+  stream.onaddtrack = (e: MessageEvent) => void e.data;
+  // @ts-expect-error: an icecandidate event handler for message.
+  channel.onmessage = (e: RTCPeerConnectionIceEvent) => void e.candidate;
+  // @ts-expect-error: not a function.
+  pc.onicecandidate = 42;
+  // @ts-expect-error: not a function.
+  stream.onremovetrack = 'handler';
+}
+
+// ---------------------------------------------------------------------------
 // Constructors, ours to the DOM's: wrtc code polyfills the globals with them
 // (`globalThis.RTCPeerConnection = wrtc.RTCPeerConnection`).
 
