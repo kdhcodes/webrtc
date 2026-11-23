@@ -15,11 +15,17 @@ type Converter = (value: unknown, context?: string) => unknown;
 
 const webidlUrl = new URL('../lib/internal/webidl.ts', import.meta.url).href;
 
+type LibDomMembers = Record<string, string[]>;
+
 /** Generates code for IDL sources, collected in the order given. */
 function generateCode(...sources: string[]): string {
+  return generateWith({}, ...sources);
+}
+
+function generateWith(libDomMembers: LibDomMembers, ...sources: string[]): string {
   return generate(
     sources.map((idl, i) => ({ idl, origin: `source ${i}` })),
-    { header: `import * as webidl from '${webidlUrl}';\n` },
+    { header: `import * as webidl from '${webidlUrl}';\n`, libDomMembers },
   ).code;
 }
 
@@ -28,7 +34,16 @@ function generateCode(...sources: string[]): string {
  * after the test) and returns its export `name`.
  */
 async function compile(t: TestContext, name: string, ...sources: string[]): Promise<Converter> {
-  const code = generateCode(...sources);
+  return compileWith(t, {}, name, ...sources);
+}
+
+async function compileWith(
+  t: TestContext,
+  libDomMembers: LibDomMembers,
+  name: string,
+  ...sources: string[]
+): Promise<Converter> {
+  const code = generateWith(libDomMembers, ...sources);
   const dir = await mkdtemp(join(tmpdir(), 'gen-idl-test-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const file = join(dir, 'idl.mts');
@@ -130,6 +145,39 @@ test('required members are non-optional in the TypeScript interface', () => {
   const code = generateCode('dictionary D { required DOMString name; long other; };');
   assert.match(code, /"name": string;/);
   assert.match(code, /"other"\?: number;/);
+});
+
+// The types' assignability to each TypeScript version's lib.dom is checked by
+// test/dom-compat/ (pnpm run typecheck); these check the generator's side.
+test("a lib.dom member is typed as the consumer's lib.dom has it, with the spec's type as fallback", () => {
+  const code = generateWith(
+    { D: ['mode'] },
+    'dictionary D { (boolean or DOMString) mode; boolean other; };',
+  );
+  assert.match(code, /^declare global \{\n {2}interface D \{\}\n\}$/m);
+  assert.match(code, /"mode"\?: LibDomMember<globalThis\.D, 'mode', \(boolean \| string\)>;/);
+  assert.match(code, /"other"\?: boolean;/);
+});
+
+test("a lib.dom member's converter still follows the spec", async (t) => {
+  const toD = await compileWith(
+    t,
+    { D: ['mode'] },
+    'toD',
+    'dictionary D { (boolean or DOMString) mode; };',
+  );
+  assert.deepEqual(toD({ mode: 'remote-only' }), { mode: 'remote-only' });
+  assert.deepEqual(toD({ mode: false }), { mode: false });
+});
+
+test('a lib.dom member that names no dictionary member fails generation', () => {
+  const idl = 'dictionary D { boolean mode; };';
+  assert.throws(() => generateWith({ D: ['missing'] }, idl), {
+    message: 'libDomMembers: no dictionary member D.missing',
+  });
+  assert.throws(() => generateWith({ Missing: ['mode'] }, idl), {
+    message: 'libDomMembers: no dictionary member Missing.mode',
+  });
 });
 
 test('member errors carry the member path as context', async (t) => {
