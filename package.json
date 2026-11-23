@@ -1,6 +1,6 @@
 {
   "name": "@kdh.codes/webrtc",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "gypfile": false,
   "description": "WebRTC for Node.js: a native addon over libwebrtc with a spec-shaped API",
   "keywords": [
