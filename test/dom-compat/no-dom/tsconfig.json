@@ -1,0 +1,15 @@
+{
+  // The published declarations without a DOM lib (no-dom.ts), compiled by
+  // scripts/check-dom-types.mjs with the current TypeScript and with 5.8.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false
+  },
+  "files": ["no-dom.ts"]
+}

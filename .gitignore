@@ -9,3 +9,4 @@ dist/
 artifacts/
 .DS_Store
 test/wpt/out/
+test/dom-compat/.declarations/

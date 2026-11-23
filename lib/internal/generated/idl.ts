@@ -319,6 +319,18 @@ export type ConstrainDouble = number | ConstrainDoubleRange;
 
 export type ConstrainULong = number | ConstrainULongRange;
 
+// lib.dom's dictionaries with members typed as the consumer's lib.dom has
+// them (LIB_DOM_MEMBERS in scripts/gen-idl.mjs). These merge with the
+// consumer's lib.dom, or declare empty interfaces when it has no DOM lib.
+declare global {
+  interface MediaTrackCapabilities {}
+  interface MediaTrackConstraintSet {}
+  interface MediaTrackSettings {}
+}
+
+/** `D[K]` when the consumer's lib.dom declares that member, else `Spec`. */
+type LibDomMember<D, K extends string, Spec> = K extends keyof D ? Exclude<D[K], undefined> : Spec;
+
 // Unions
 
 const union0: webidl.Converter<boolean | string> = webidl.union('(boolean or DOMString)', {
@@ -720,7 +732,11 @@ export interface MediaTrackCapabilities {
   resizeMode?: string[];
   sampleRate?: ULongRange;
   sampleSize?: ULongRange;
-  echoCancellation?: (boolean | string)[];
+  echoCancellation?: LibDomMember<
+    globalThis.MediaTrackCapabilities,
+    'echoCancellation',
+    (boolean | string)[]
+  >;
   autoGainControl?: boolean[];
   noiseSuppression?: boolean[];
   latency?: DoubleRange;
@@ -788,7 +804,11 @@ export interface MediaTrackConstraintSet {
   resizeMode?: ConstrainDOMString;
   sampleRate?: ConstrainULong;
   sampleSize?: ConstrainULong;
-  echoCancellation?: ConstrainBooleanOrDOMString;
+  echoCancellation?: LibDomMember<
+    globalThis.MediaTrackConstraintSet,
+    'echoCancellation',
+    ConstrainBooleanOrDOMString
+  >;
   autoGainControl?: ConstrainBoolean;
   noiseSuppression?: ConstrainBoolean;
   latency?: ConstrainDouble;
@@ -868,7 +888,11 @@ export interface MediaTrackSettings {
   resizeMode?: string;
   sampleRate?: number;
   sampleSize?: number;
-  echoCancellation?: boolean | string;
+  echoCancellation?: LibDomMember<
+    globalThis.MediaTrackSettings,
+    'echoCancellation',
+    boolean | string
+  >;
   autoGainControl?: boolean;
   noiseSuppression?: boolean;
   latency?: number;

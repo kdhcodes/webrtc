@@ -1,0 +1,16 @@
+{
+  // The DOM compatibility test with the current TypeScript's lib.dom (run by
+  // scripts/check-dom-types.mjs, which first emits ./.declarations). Settings
+  // as a consumer that has both Node's and the DOM's types has them.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false
+  },
+  "files": ["dom-compat.ts", "dom-compat.current.ts"]
+}

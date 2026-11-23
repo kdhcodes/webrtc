@@ -17,7 +17,14 @@ export interface GenerateResult {
  * Generates the converters module for `sources`, in collection order. Throws
  * on anything it can't emit faithfully.
  */
-export function generate(sources: IdlSource[], options?: { header?: string }): GenerateResult;
+export function generate(
+  sources: IdlSource[],
+  options?: {
+    header?: string;
+    /** Dictionary name to members typed as the consumer's lib.dom has them. */
+    libDomMembers?: Record<string, string[]>;
+  },
+): GenerateResult;
 
 /**
  * Generates the interface shapes module (`interfaceShapes`) for `sources`.
