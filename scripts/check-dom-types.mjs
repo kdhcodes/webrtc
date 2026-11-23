@@ -6,7 +6,7 @@
 // current TypeScript and its lib.dom, and with TypeScript 5.8 and its
 // lib.dom (the `typescript-5.8` devDependency), whose dictionaries differ in
 // places. Each also compiles the declarations without a DOM lib, as a
-// Node-only consumer does (test/dom-compat/no-dom.ts). Part of
+// Node-only consumer does (test/dom-compat/no-dom/). Part of
 // `pnpm run typecheck`.
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, rmSync } from 'node:fs';
@@ -23,13 +23,13 @@ const compilers = [
     name: `TypeScript ${version('typescript')}`,
     tsc: 'node_modules/typescript/bin/tsc',
     project: 'test/dom-compat/tsconfig.json',
-    noDom: 'test/dom-compat/tsconfig.no-dom.json',
+    noDom: 'test/dom-compat/no-dom/tsconfig.json',
   },
   {
     name: `TypeScript ${version('typescript-5.8')}`,
     tsc: 'node_modules/typescript-5.8/bin/tsc',
-    project: 'test/dom-compat/tsconfig.ts5.8.json',
-    noDom: 'test/dom-compat/tsconfig.no-dom.json',
+    project: 'test/dom-compat/ts5.8/tsconfig.json',
+    noDom: 'test/dom-compat/no-dom/tsconfig.json',
   },
 ];
 

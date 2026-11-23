@@ -620,7 +620,7 @@ Lifetime:
   published declarations with the current TypeScript's lib.dom and with
   TypeScript 5.8's (the `typescript-5.8` devDependency), checks that the
   `on<event>` setters still refuse a handler of another event, and
-  compiles the declarations without a DOM lib (`no-dom.ts`) with both
+  compiles the declarations without a DOM lib (`test/dom-compat/no-dom/`) with both
   versions. What it took:
   - `build:ts` (`scripts/build-ts.mjs`) drops tsc's `#private;` and the
     `[Symbol.toStringTag]` getters from the `.d.ts` files: a JS private

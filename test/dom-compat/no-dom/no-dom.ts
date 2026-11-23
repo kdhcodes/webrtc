@@ -1,10 +1,11 @@
 // The published declarations without a DOM lib, as a Node-only consumer
-// compiles them (tsconfig.no-dom.json: lib es2022, Node's types,
-// skipLibCheck off, so every .d.ts is checked). Run by
-// scripts/check-dom-types.mjs with each TypeScript version. Without a
+// compiles them (./tsconfig.json: lib es2022, Node's types, skipLibCheck
+// off, so every .d.ts is checked). Run by scripts/check-dom-types.mjs with
+// each TypeScript version. It has a directory of its own so that editors
+// find that tsconfig.json for it, not ../tsconfig.json's DOM lib. Without a
 // lib.dom, the members typed as the consumer's lib.dom has them
 // (LIB_DOM_MEMBERS in scripts/gen-idl.mjs) are the spec's types.
-import type * as W from './.declarations/index.js';
+import type * as W from '../.declarations/index.js';
 
 declare const track: W.MediaStreamTrack;
 

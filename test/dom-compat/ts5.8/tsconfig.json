@@ -1,7 +1,9 @@
 {
   // The DOM compatibility test with TypeScript 5.8's lib.dom (the
   // `typescript-5.8` devDependency; run by scripts/check-dom-types.mjs).
-  // Whereby's assistant-sdk compiles with 5.8.
+  // Whereby's assistant-sdk compiles with 5.8. Editors check
+  // ../dom-compat.ts with ../tsconfig.json (the same options, and their own
+  // bundled TypeScript's lib.dom); only check-dom-types runs it with 5.8.
   "compilerOptions": {
     "target": "es2022",
     "lib": ["es2024", "dom", "dom.iterable"],
@@ -12,5 +14,5 @@
     "noEmit": true,
     "skipLibCheck": false
   },
-  "files": ["dom-compat.ts"]
+  "files": ["../dom-compat.ts"]
 }
