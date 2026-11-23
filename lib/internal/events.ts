@@ -55,11 +55,23 @@ export function setEventHandler(target: EventTarget, type: string, value: unknow
 export type EventHandler<E> = { bivarianceHack(event: E): unknown }['bivarianceHack'] | null;
 
 /**
- * What an `on<event>` getter returns. Typed loosely so our classes stay
- * assignable to the DOM's interfaces (whose handler properties take the
- * DOM's own event types); reading a handler back is rare.
+ * What an `on<event>` getter returns: a handler of any event, declared
+ * through a method signature so its parameter is compared bivariantly.
+ * Assignability between our classes and lib.dom's interfaces goes through
+ * the getter's type (the setter's isn't compared), and it must hold both
+ * ways (test/dom-compat/):
+ * - ours to the DOM's: lib.dom's handler type, e.g. `(this: MediaStream,
+ *   ev: MediaStreamTrackEvent) => any`, compares parameters strictly, so ours
+ *   must take every DOM event of that type. `Event` does; our own event
+ *   classes (MediaStreamTrackEvent) don't, as the DOM's aren't assignable to
+ *   them.
+ * - the DOM's to ours: lib.dom's handler only takes its own event type,
+ *   which `Event` isn't assignable to. The bivariant comparison accepts it
+ *   because that event type is assignable to `Event`.
+ *
+ * Reading a handler back is rare; calling it with any event type-checks.
  */
-export type AnyEventHandler = ((event: Event) => unknown) | null;
+export type AnyEventHandler = { bivarianceHack(event: Event): unknown }['bivarianceHack'] | null;
 
 // The global EventTarget's own parameter types (Node's or the DOM's,
 // depending on the consumer's lib).
