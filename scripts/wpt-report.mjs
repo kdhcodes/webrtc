@@ -228,7 +228,7 @@ function main() {
     commit: opt('--commit', process.env.GITHUB_SHA ?? 'unknown'),
     date: opt('--date', new Date().toISOString().slice(0, 10)),
     platform: opt('--platform', `${process.platform}-${process.arch}`),
-    repo: opt('--repo', process.env.GITHUB_REPOSITORY ?? 'kevindhanna/webrtc'),
+    repo: opt('--repo', process.env.GITHUB_REPOSITORY ?? 'kdhcodes/webrtc'),
   };
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'wpt.json'), `${JSON.stringify(badge(results))}\n`);

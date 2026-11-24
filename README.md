@@ -1,6 +1,6 @@
 # @kdh.codes/webrtc
 
-[![WPT](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fkevindhanna%2Fwebrtc%2Fbadges%2Fwpt.json)](https://github.com/kevindhanna/webrtc/blob/badges/WPT.md)
+[![WPT](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fkdhcodes%2Fwebrtc%2Fbadges%2Fwpt.json)](https://github.com/kdhcodes/webrtc/blob/badges/WPT.md)
 
 WebRTC for Node.js. It's a native addon over Google's libwebrtc (M150, built from upstream) with an API that sticks to the spec, and it's a drop-in replacement for `@roamhq/wrtc`, `nonstandard` APIs and all.
 

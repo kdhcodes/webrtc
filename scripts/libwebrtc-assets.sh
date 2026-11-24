@@ -44,7 +44,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-repo_slug=kevindhanna/webrtc
+repo_slug=kdhcodes/webrtc
 triples=(darwin-arm64 linux-arm64 linux-x64)
 hashes=third_party/libwebrtc-assets.sha256
 

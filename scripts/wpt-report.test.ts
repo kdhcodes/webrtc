@@ -26,7 +26,7 @@ const options = {
   commit: '0123456789abcdef0123456789abcdef01234567',
   date: '2026-11-22',
   platform: 'darwin-arm64',
-  repo: 'kevindhanna/webrtc',
+  repo: 'kdhcodes/webrtc',
 };
 const md = page(results, expectations, options);
 
@@ -109,7 +109,7 @@ test("the summary table's sections add up to the total", () => {
 test('the header has the date, the linked commit, the platform and the total', () => {
   assert.match(
     md,
-    /^# WPT results\n\nWeb Platform Tests `webrtc\/` \(`test\/wpt\/`\) on darwin-arm64, 2026-11-22, at \[`0123456`\]\(https:\/\/github\.com\/kevindhanna\/webrtc\/commit\/0123456789abcdef0123456789abcdef01234567\):\n\*\*2206 \/ 2337 subtests pass\.\*\*\n/,
+    /^# WPT results\n\nWeb Platform Tests `webrtc\/` \(`test\/wpt\/`\) on darwin-arm64, 2026-11-22, at \[`0123456`\]\(https:\/\/github\.com\/kdhcodes\/webrtc\/commit\/0123456789abcdef0123456789abcdef01234567\):\n\*\*2206 \/ 2337 subtests pass\.\*\*\n/,
   );
 });
 

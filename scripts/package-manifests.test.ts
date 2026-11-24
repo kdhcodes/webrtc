@@ -107,7 +107,7 @@ test("the repo's package.json makes publishable packages pointing at its reposit
   const pkg = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'));
   const main = mainManifest(pkg, { buildId: 'abc', triples, wiring: 'optional' });
   assert.equal('private' in main, false);
-  assert.match(String((pkg.repository as { url: string }).url), /github\.com\/kevindhanna\/webrtc/);
+  assert.match(String((pkg.repository as { url: string }).url), /github\.com\/kdhcodes\/webrtc/);
   for (const version of Object.values(main.optionalDependencies as Record<string, string>)) {
     assert.equal(version, pkg.version);
   }

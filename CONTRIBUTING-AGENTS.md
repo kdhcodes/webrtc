@@ -494,7 +494,7 @@ them locally first.
 
 ### CI and releases
 
-The repo is public at `github.com/kevindhanna/webrtc`, so GitHub Actions'
+The repo is public at `github.com/kdhcodes/webrtc`, so GitHub Actions'
 runners are free. Three workflows, plus a local action. Actions from GitHub
 (`actions/*`) are pinned by major version, others by commit SHA with the
 version in a comment.
@@ -589,7 +589,7 @@ this order:
 
    ```sh
    id=$(python3 scripts/gyp-webrtc.py config-id)
-   gh release create "libwebrtc-$id" --repo kevindhanna/webrtc --target main --latest=false \
+   gh release create "libwebrtc-$id" --repo kdhcodes/webrtc --target main --latest=false \
      --title "libwebrtc $id" --notes "libwebrtc builds for config id $id (scripts/libwebrtc-assets.sh)" \
      artifacts/libwebrtc/libwebrtc-"$id"-*.tar.xz
    ```
@@ -603,14 +603,14 @@ this order:
 
    ```sh
    id=$(python3 scripts/gyp-webrtc.py config-id); token=...   # the token
-   api=https://api.github.com/repos/kevindhanna/webrtc
+   api=https://api.github.com/repos/kdhcodes/webrtc
    auth="Authorization: Bearer $token"
    release=$(curl -fsS -X POST -H "$auth" "$api/releases" \
      -d "{\"tag_name\":\"libwebrtc-$id\",\"target_commitish\":\"main\",\"name\":\"libwebrtc $id\",\"draft\":true,\"make_latest\":\"false\"}" |
      node -p 'JSON.parse(require("fs").readFileSync(0)).id')
    for f in artifacts/libwebrtc/libwebrtc-"$id"-*.tar.xz; do
      curl -fsS -X POST -H "$auth" -H "Content-Type: application/octet-stream" --data-binary @"$f" \
-       "https://uploads.github.com/repos/kevindhanna/webrtc/releases/$release/assets?name=$(basename "$f")" >/dev/null
+       "https://uploads.github.com/repos/kdhcodes/webrtc/releases/$release/assets?name=$(basename "$f")" >/dev/null
    done
    curl -fsS -X PATCH -H "$auth" "$api/releases/$release" -d '{"draft":false,"make_latest":"false"}' >/dev/null
    ```
@@ -675,7 +675,7 @@ with the CI branch merged locally:
 3. For each of the four packages (`@kdh.codes/webrtc`,
    `@kdh.codes/webrtc-darwin-arm64`, `-linux-arm64`, `-linux-x64`), on
    npmjs.com: the package's Settings, "Trusted Publisher", GitHub Actions,
-   with organization or user `kevindhanna`, repository `webrtc`, workflow
+   with organization or user `kdhcodes`, repository `webrtc`, workflow
    filename `release.yml` and environment name `npm`, with "Allow npm
    publish" ticked (the workflow runs `npm publish`; without it only `npm
    stage publish` is allowed). npm marks a new trusted publisher "Pending

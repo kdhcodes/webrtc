@@ -15,11 +15,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kevindhanna/webrtc.git"
+    "url": "git+https://github.com/kdhcodes/webrtc.git"
   },
-  "homepage": "https://github.com/kevindhanna/webrtc#readme",
+  "homepage": "https://github.com/kdhcodes/webrtc#readme",
   "bugs": {
-    "url": "https://github.com/kevindhanna/webrtc/issues"
+    "url": "https://github.com/kdhcodes/webrtc/issues"
   },
   "publishConfig": {
     "access": "public"
