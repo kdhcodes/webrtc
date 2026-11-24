@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { splitId, testPlan } from '../../scripts/wpt-lib.mjs';
 import * as dom from './dom-shim.ts';
+import { atLeastDelayTimers } from './timers.ts';
 
 export const MARKER = '@@WPT ';
 
@@ -75,6 +76,14 @@ for (const [name, value] of Object.entries(exports)) {
 
 defineGlobal('self', globalThis);
 defineGlobal('window', globalThis);
+
+// HTML's setTimeout waits at least the delay; Node's can fire up to about
+// 1 ms early (test/wpt/timers.ts).
+const timers = atLeastDelayTimers(globalThis.setTimeout, globalThis.clearTimeout, () =>
+  performance.now(),
+);
+defineGlobal('setTimeout', timers.setTimeout);
+defineGlobal('clearTimeout', timers.clearTimeout);
 // idlharness checks `'Window' in self` to decide what's exposed here.
 defineGlobal('Window', function Window() {});
 defineGlobal('isSecureContext', true);

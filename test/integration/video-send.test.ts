@@ -215,7 +215,15 @@ test('per-layer maxFramerate on VP8 simulcast keeps VP8, with one encoder per la
     sendEncodings: rids.map((rid, i) => ({ rid, scaleResolutionDownBy: 2 ** (2 - i) })),
   });
   start();
-  await negotiate(p.a, p.b, { rids });
+  // This is about frame rates, not bandwidth: the simulcast allocator only
+  // turns the 960x540 layer on above about 850 kbps, and on a GitHub macOS
+  // runner the loopback estimate stayed below that for 15 s. A 1.5 Mbps
+  // floor (and start) covers a slow ramp or a moderate dip; severe
+  // congestion can still switch the top layer off, hence the retry below.
+  await negotiate(p.a, p.b, {
+    rids,
+    answerFmtp: 'x-google-min-bitrate=1500;x-google-start-bitrate=2000',
+  });
   await until(p.a, (s) => rids.every((rid) => (s.get(rid)?.frames ?? 0) >= 10));
 
   const parameters = sender.getParameters();
@@ -230,11 +238,10 @@ test('per-layer maxFramerate on VP8 simulcast keeps VP8, with one encoder per la
   for (const rid of rids) assert.equal(switched.get(rid)?.codec, 'video/VP8', rid);
   await local.more(15); // settle
 
-  // 15, 10 and 5 of about 30 fps. A layer never goes over its cap. When
-  // the bandwidth estimate dips (it did on a GitHub macOS runner), the
-  // simulcast allocator switches the top layer off for a while, so a slow
-  // window that was bandwidth-limited is measured again, up to three times.
-  // A slow window with no bandwidth limit fails.
+  // 15, 10 and 5 of about 30 fps. A layer never goes over its cap. Should
+  // the encoder still report a bandwidth limit despite the floor, a slow
+  // window that was bandwidth-limited is measured again, up to three times;
+  // a slow window with no bandwidth limit fails.
   const windows: string[] = [];
   for (;;) {
     const { layers, pushed, bandwidthLimited } = await encodedFps(p.a, local, 90);
